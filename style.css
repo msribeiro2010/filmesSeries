@@ -44,6 +44,8 @@ main {
     overflow: hidden;
     background-color: #fff;
     text-align: center;
+    display: flex;
+    flex-direction: column;
 }
 
 .movie-series img {
@@ -91,4 +93,27 @@ main {
 
 #load-more:hover {
     background-color: #45a049;
+}
+
+/* Media queries para dispositivos móveis */
+@media (max-width: 768px) {
+    main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .movie-series {
+        flex: 1 1 100%;
+        max-width: 500px;
+    }
+
+    .movie-series img {
+        width: 100%;
+        height: auto;
+    }
+
+    #load-more {
+        width: 100%;
+        max-width: 500px;
+    }
 }
