@@ -117,3 +117,17 @@ main {
         max-width: 500px;
     }
 }
+
+/* Media queries para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .movie-series {
+        flex: 1 1 calc(50% - 20px);
+    }
+}
+
+/* Media queries para desktops */
+@media (min-width: 1025px) {
+    .movie-series {
+        flex: 1 1 calc(25% - 20px);
+    }
+}
