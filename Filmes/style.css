@@ -1,0 +1,94 @@
+/* style.css */
+
+/* Estilo para o corpo da página */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Estilo para o cabeçalho principal */
+h1 {
+    background-color: #4CAF50;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    width: 100%;
+    margin: 0;
+}
+
+/* Estilo para o contêiner principal */
+main {
+    width: 90%;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Estilo para os cartões */
+.movie-series {
+    flex: 1 1 calc(25% - 20px);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #fff;
+    text-align: center;
+}
+
+.movie-series img {
+    width: 100%;
+    height: auto;
+}
+
+.movie-series h2 {
+    font-size: 1.2em;
+    margin: 10px 0;
+}
+
+.movie-series p {
+    margin: 10px;
+}
+
+/* Estilo para a avaliação */
+.rating-high {
+    color: green;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.rating-low {
+    color: red;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+/* Estilo para a data de estreia */
+.release-date {
+    color: green;
+}
+
+/* Estilo para o botão "Carregar Mais" */
+#load-more {
+    padding: 10px 20px;
+    margin: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#load-more:hover {
+    background-color: #45a049;
+}
