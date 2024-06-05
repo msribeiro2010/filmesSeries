@@ -51,10 +51,13 @@ document.addEventListener("DOMContentLoaded", () => {
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    availability.textContent = `Disponível em: Cinema`;
+    availability.textContent = `Faixa etária: ${
+      item.adult ? "Adulto" : "Livre"
+    }`;
     card.appendChild(availability);
 
-    const ratingValue = item.vote_average === 0 ? "n/v" : item.vote_average;
+    const ratingValue =
+      item.vote_average === 0 ? "Não avaliado" : item.vote_average;
     const rating = document.createElement("p");
     rating.textContent = `Avaliação: ${ratingValue}`;
     rating.classList.add(
