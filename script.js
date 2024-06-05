@@ -74,8 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     card.appendChild(availability);
 
-    const ratingValue =
-      item.vote_average === 0 ? "s/avaliação" : item.vote_average;
+    const ratingValue = item.vote_average === 0 ? "n/v" : item.vote_average;
     const rating = document.createElement("p");
     rating.textContent = `Avaliação: ${ratingValue}`;
     rating.classList.add(
