@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   const itemsPerPage = 4;
   let displayedItems = new Set();
-  let allMovies = [];
+  let allItems = [];
   let loading = false;
 
   function formatDate(dateString) {
@@ -45,18 +45,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const releaseDate = document.createElement("p");
     releaseDate.textContent = `Data de Estreia: ${formatDate(
-      item.release_date
+      item.release_date || item.first_air_date
     )}`;
     releaseDate.classList.add("release-date");
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    availability.textContent = `Disponível em: Cinema`;
+    availability.textContent = `Disponível em: ${
+      type === "Filme" ? "Cinema" : "Streaming"
+    }`;
     card.appendChild(availability);
 
+    const ratingValue =
+      item.vote_average === 0 ? "n/avaliado" : item.vote_average;
     const rating = document.createElement("p");
-    rating.textContent = `Avaliação: ${item.vote_average}`;
-    rating.classList.add(item.vote_average < 6 ? "rating-low" : "rating-high");
+    rating.textContent = `Avaliação: ${ratingValue}`;
+    rating.classList.add(
+      item.vote_average < 6 && item.vote_average > 0
+        ? "rating-low"
+        : "rating-high"
+    );
     card.appendChild(rating);
 
     if (trailerKey) {
@@ -76,9 +84,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return card;
   }
 
-  async function fetchTrailer(item) {
+  async function fetchTrailer(item, type) {
     const response = await fetch(
-      `${BASE_URL}/movie/${item.id}/videos?api_key=${API_KEY}&language=pt-BR`
+      `${BASE_URL}/${type}/${item.id}/videos?api_key=${API_KEY}&language=pt-BR`
     );
     const data = await response.json();
     const trailer = data.results.find(
@@ -92,18 +100,29 @@ document.addEventListener("DOMContentLoaded", () => {
     loading = true;
 
     try {
-      const [upcomingMoviesResponse, genresResponse] = await Promise.all([
-        fetch(
-          `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
-        ),
-        fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=pt-BR`),
-      ]);
+      const [upcomingMoviesResponse, popularSeriesResponse, genresResponse] =
+        await Promise.all([
+          fetch(
+            `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
+          ),
+          fetch(
+            `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
+          ),
+          fetch(
+            `${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=pt-BR`
+          ),
+        ]);
 
-      if (!upcomingMoviesResponse.ok || !genresResponse.ok) {
+      if (
+        !upcomingMoviesResponse.ok ||
+        !popularSeriesResponse.ok ||
+        !genresResponse.ok
+      ) {
         throw new Error("Falha ao buscar dados");
       }
 
       const upcomingMoviesDataResponse = await upcomingMoviesResponse.json();
+      const popularSeriesDataResponse = await popularSeriesResponse.json();
       const genresDataResponse = await genresResponse.json();
 
       const allGenres = genresDataResponse.genres;
@@ -112,11 +131,20 @@ document.addEventListener("DOMContentLoaded", () => {
         (movie) => new Date(movie.release_date).getFullYear() === 2024
       );
 
-      allMovies = [...allMovies, ...movies2024];
+      const series2024 = popularSeriesDataResponse.results.filter(
+        (series) => new Date(series.first_air_date).getFullYear() === 2024
+      );
 
-      allMovies.sort(
+      allItems = [
+        ...allItems,
+        ...movies2024.map((item) => ({ ...item, type: "Filme" })),
+        ...series2024.map((item) => ({ ...item, type: "Série" })),
+      ];
+
+      allItems.sort(
         (a, b) =>
-          new Date(b.release_date) - new Date(a.release_date) ||
+          new Date(b.release_date || b.first_air_date) -
+            new Date(a.release_date || a.first_air_date) ||
           b.vote_average - a.vote_average
       );
 
@@ -131,20 +159,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function displayItems(genres) {
     const container = document.getElementById("movies-series");
-    const itemsToDisplay = allMovies.slice(0, itemsPerPage);
+    const itemsToDisplay = allItems.slice(0, itemsPerPage);
 
     for (let item of itemsToDisplay) {
-      const trailerKey = await fetchTrailer(item);
-      const card = createCard(item, genres, trailerKey);
+      const trailerKey = await fetchTrailer(
+        item,
+        item.type === "Filme" ? "movie" : "tv"
+      );
+      const card = createCard(item, item.type, genres, trailerKey);
       if (card) {
         container.appendChild(card);
       }
     }
 
-    allMovies = allMovies.slice(itemsPerPage);
+    allItems = allItems.slice(itemsPerPage);
   }
 
-  document.getElementById("load-more").addEventListener("click", fetchMovies);
+  document.getElementById("load-more").addEventListener("click", fetchItems);
 
-  fetchMovies();
+  fetchItems();
 });
