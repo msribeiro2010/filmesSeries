@@ -30,9 +30,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const providers = data.results.BR || data.results.US || data.results;
     const flatrate = providers.flatrate || [];
     if (flatrate.length > 0) {
-      return flatrate.map((provider) => provider.provider_name).join(", ");
+      return {
+        text: flatrate.map((provider) => provider.provider_name).join(", "),
+        isStreaming: true,
+      };
     }
-    return "Cinema";
+    return { text: "Cinema", isStreaming: false };
   }
 
   async function createCard(item, type, genres, trailerKey) {
@@ -64,8 +67,11 @@ document.addEventListener("DOMContentLoaded", () => {
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    const availabilityText = await getAvailability(item, type);
-    availability.textContent = `Disponível em: ${availabilityText}`;
+    const availabilityData = await getAvailability(item, type);
+    availability.textContent = `Disponível em: ${availabilityData.text}`;
+    availability.classList.add(
+      availabilityData.isStreaming ? "streaming" : "cinema"
+    );
     card.appendChild(availability);
 
     const ratingValue =

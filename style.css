@@ -130,5 +130,14 @@ main {
     .movie-series {
         flex: 1 1 calc(25% - 20px);
     }
-} 
+}/* Adicionar essas classes ao final do seu style.css */
 
+/* Estilo para disponibilidade em cinemas */
+.cinema {
+    color: green;
+}
+
+/* Estilo para disponibilidade em streaming */
+.streaming {
+    color: blue;
+}
