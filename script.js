@@ -22,23 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return genres.join(", ");
   }
 
-  async function getAvailability(item, type) {
-    const response = await fetch(
-      `${BASE_URL}/${type}/${item.id}/watch/providers?api_key=${API_KEY}`
-    );
-    const data = await response.json();
-    const providers = data.results.BR || data.results.US || data.results;
-    const flatrate = providers.flatrate || [];
-    if (flatrate.length > 0) {
-      return {
-        text: flatrate.map((provider) => provider.provider_name).join(", "),
-        isStreaming: true,
-      };
-    }
-    return { text: "Cinema", isStreaming: false };
-  }
-
-  async function createCard(item, type, genres, trailerKey) {
+  function createCard(item, type, genres, trailerKey) {
     if (displayedItems.has(item.id)) return null;
 
     const card = document.createElement("div");
@@ -67,11 +51,9 @@ document.addEventListener("DOMContentLoaded", () => {
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    const availabilityData = await getAvailability(item, type);
-    availability.textContent = `Disponível em: ${availabilityData.text}`;
-    availability.classList.add(
-      availabilityData.isStreaming ? "streaming" : "cinema"
-    );
+    availability.textContent = `Disponível em: ${
+      type === "Filme" ? "Cinema" : "Streaming"
+    }`;
     card.appendChild(availability);
 
     const ratingValue = item.vote_average === 0 ? "n/v" : item.vote_average;
@@ -183,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
         item,
         item.type === "Filme" ? "movie" : "tv"
       );
-      const card = await createCard(item, item.type, genres, trailerKey);
+      const card = createCard(item, item.type, genres, trailerKey);
       if (card) {
         container.appendChild(card);
       }
