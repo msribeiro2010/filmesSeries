@@ -109,9 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const allGenres = genresDataResponse.genres;
 
       const movies2024 = upcomingMoviesDataResponse.results.filter(
-        (movie) =>
-          new Date(movie.release_date).getFullYear() === 2024 &&
-          new Date(movie.release_date) >= currentDate
+        (movie) => new Date(movie.release_date).getFullYear() === 2024
       );
 
       allMovies = [...allMovies, ...movies2024];
