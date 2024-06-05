@@ -22,7 +22,23 @@ document.addEventListener("DOMContentLoaded", () => {
     return genres.join(", ");
   }
 
-  function createCard(item, genres, trailerKey) {
+  async function getAvailability(item, type) {
+    const response = await fetch(
+      `${BASE_URL}/${type}/${item.id}/watch/providers?api_key=${API_KEY}`
+    );
+    const data = await response.json();
+    const providers = data.results.BR || data.results.US || data.results;
+    const flatrate = providers.flatrate || [];
+    if (flatrate.length > 0) {
+      return {
+        text: flatrate.map((provider) => provider.provider_name).join(", "),
+        isStreaming: true,
+      };
+    }
+    return { text: "Cinema", isStreaming: false };
+  }
+
+  async function createCard(item, type, genres, trailerKey) {
     if (displayedItems.has(item.id)) return null;
 
     const card = document.createElement("div");
@@ -51,13 +67,14 @@ document.addEventListener("DOMContentLoaded", () => {
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    availability.textContent = `Disponível em: ${
-      type === "Filme" ? "Cinema" : "Streaming"
-    }`;
+    const availabilityData = await getAvailability(item, type);
+    availability.textContent = `Disponível em: ${availabilityData.text}`;
+    availability.classList.add(
+      availabilityData.isStreaming ? "streaming" : "cinema"
+    );
     card.appendChild(availability);
 
-    const ratingValue =
-      item.vote_average === 0 ? "n/avaliado" : item.vote_average;
+    const ratingValue = item.vote_average === 0 ? "n/v" : item.vote_average;
     const rating = document.createElement("p");
     rating.textContent = `Avaliação: ${ratingValue}`;
     rating.classList.add(
@@ -95,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return trailer ? trailer.key : null;
   }
 
-  async function fetchMovies() {
+  async function fetchItems() {
     if (loading) return;
     loading = true;
 
@@ -151,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
       displayItems(allGenres);
       currentPage++;
     } catch (error) {
-      console.error("Erro ao buscar filmes:", error);
+      console.error("Erro ao buscar filmes e séries:", error);
     } finally {
       loading = false;
     }
@@ -166,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
         item,
         item.type === "Filme" ? "movie" : "tv"
       );
-      const card = createCard(item, item.type, genres, trailerKey);
+      const card = await createCard(item, item.type, genres, trailerKey);
       if (card) {
         container.appendChild(card);
       }
