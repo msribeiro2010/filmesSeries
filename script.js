@@ -3,22 +3,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const BASE_URL = "https://api.themoviedb.org/3";
   const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
   const YOUTUBE_BASE_URL = "https://www.youtube.com/embed/";
-  const currentDate = new Date();
   let currentPage = 1;
   const itemsPerPage = 4;
   let displayedItems = new Set();
   let allItems = [];
+  let filteredItems = [];
   let loading = false;
+  let allGenres = [];
+  let currentFilter = "all";
 
   function formatDate(dateString) {
     const options = { year: "numeric", month: "2-digit", day: "2-digit" };
     return new Date(dateString).toLocaleDateString("pt-BR", options);
   }
 
-  function getGenres(ids, allGenres) {
-    const genres = ids.map(
-      (id) => allGenres.find((genre) => genre.id === id).name
-    );
+  function getGenres(ids) {
+    const genres = ids.map((id) => {
+      const genre = allGenres.find((genre) => genre.id === id);
+      return genre ? genre.name : "Desconhecido";
+    });
     return genres.join(", ");
   }
 
@@ -43,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return { text, isStreaming: text !== "Cinema" };
   }
 
-  async function createCard(item, genres, trailerKey, type) {
+  async function createCard(item, trailerKey, type) {
     if (displayedItems.has(item.id)) return null;
 
     const card = document.createElement("div");
@@ -65,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const genreLabel = document.createElement("p");
-    genreLabel.textContent = `Gêneros: ${getGenres(item.genre_ids, genres)}`;
+    genreLabel.textContent = `Gêneros: ${getGenres(item.genre_ids)}`;
     card.appendChild(genreLabel);
 
     const releaseDate = document.createElement("p");
@@ -75,13 +78,11 @@ document.addEventListener("DOMContentLoaded", () => {
     releaseDate.classList.add("release-date");
     card.appendChild(releaseDate);
 
-    const availability = document.createElement("p");
+    /* const availability = document.createElement("p");
     const availabilityData = await getAvailability(item, type);
-    availability.textContent = `Disponível em: ${availabilityData.text}`;
-    availability.classList.add(
-      availabilityData.isStreaming ? "streaming" : "cinema"
-    );
-    card.appendChild(availability);
+    availability.textContent = `Disponível: ${availabilityData.text}`;
+    availability.classList.add(availabilityData.isStreaming ? "TV" : "cinema");
+    card.appendChild(availability); */
 
     const ratingValue =
       item.vote_average === 0 ? "Não avaliado" : item.vote_average;
@@ -127,10 +128,10 @@ document.addEventListener("DOMContentLoaded", () => {
     loading = true;
 
     try {
-      const [upcomingMoviesResponse, popularSeriesResponse, genresResponse] =
+      const [popularMoviesResponse, popularSeriesResponse, genresResponse] =
         await Promise.all([
           fetch(
-            `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
+            `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
           ),
           fetch(
             `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
@@ -141,20 +142,20 @@ document.addEventListener("DOMContentLoaded", () => {
         ]);
 
       if (
-        !upcomingMoviesResponse.ok ||
+        !popularMoviesResponse.ok ||
         !popularSeriesResponse.ok ||
         !genresResponse.ok
       ) {
         throw new Error("Falha ao buscar dados");
       }
 
-      const upcomingMoviesDataResponse = await upcomingMoviesResponse.json();
+      const popularMoviesDataResponse = await popularMoviesResponse.json();
       const popularSeriesDataResponse = await popularSeriesResponse.json();
       const genresDataResponse = await genresResponse.json();
 
-      const allGenres = genresDataResponse.genres;
+      allGenres = genresDataResponse.genres;
 
-      const movies2024 = upcomingMoviesDataResponse.results.filter(
+      const movies2024 = popularMoviesDataResponse.results.filter(
         (movie) => new Date(movie.release_date).getFullYear() === 2024
       );
 
@@ -175,7 +176,10 @@ document.addEventListener("DOMContentLoaded", () => {
           b.vote_average - a.vote_average
       );
 
-      displayItems(allGenres);
+      filteredItems = allItems.filter(
+        (item) => item.type === currentFilter || currentFilter === "all"
+      );
+      displayItems(false); // Pass false to indicate that items should be appended
       currentPage++;
     } catch (error) {
       console.error("Erro ao buscar filmes e séries:", error);
@@ -184,22 +188,60 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function displayItems(genres) {
+  function displayItems(clear = true) {
     const container = document.getElementById("movies-series");
-    const itemsToDisplay = allItems.slice(0, itemsPerPage);
+    if (clear) {
+      container.innerHTML = "";
+      displayedItems.clear();
+    }
 
-    for (let item of itemsToDisplay) {
+    const itemsToDisplay = filteredItems.slice(0, itemsPerPage);
+    itemsToDisplay.forEach(async (item) => {
       const trailerKey = await fetchTrailer(item, item.type);
-      const card = await createCard(item, genres, trailerKey, item.type);
+      const card = await createCard(item, trailerKey, item.type);
       if (card) {
         container.appendChild(card);
       }
-    }
+    });
 
-    allItems = allItems.slice(itemsPerPage);
+    filteredItems = filteredItems.slice(itemsPerPage);
+
+    if (!clear) {
+      // Scroll to the bottom of the page
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
   }
 
-  document.getElementById("load-more").addEventListener("click", fetchItems);
+  function filterItems(type) {
+    currentFilter = type;
+    if (type === "all") {
+      filteredItems = allItems;
+    } else {
+      filteredItems = allItems.filter((item) => item.type === type);
+    }
+    currentPage = 1;
+    displayItems();
+  }
+
+  document.getElementById("filter-all").addEventListener("click", () => {
+    filterItems("all");
+  });
+
+  document.getElementById("filter-movies").addEventListener("click", () => {
+    filterItems("movie");
+  });
+
+  document.getElementById("filter-series").addEventListener("click", () => {
+    filterItems("tv");
+  });
+
+  document.getElementById("load-more").addEventListener("click", () => {
+    fetchItems();
+  });
+
+  document.getElementById("back-to-top").addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
   fetchItems();
 });
