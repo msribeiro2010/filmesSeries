@@ -131,9 +131,9 @@ main {
         height: auto;
     }
 
-    #load-more {
-        width: 100%;
-        max-width: 500px;
+    #load-more, #back-to-top {
+        flex: 1 1 48%;
+        max-width: 48%;
     }
 
     .filter-buttons {
@@ -166,6 +166,7 @@ main {
     justify-content: center;
     gap: 20px;
     margin: 20px;
+    flex-wrap: wrap;
 }
 
 /* Estilo para os botões "Carregar Mais" e "Voltar ao Início" */
@@ -176,8 +177,36 @@ main {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    flex: 1 1 calc(50% - 20px);
+    max-width: calc(50% - 20px);
+    box-sizing: border-box;
+    text-align: center;
+    position: relative;
 }
 
 .button-container button:hover {
     background-color: #45a049;
+}
+
+/* Spinner CSS */
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #fff;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }

@@ -25,27 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return genres.join(", ");
   }
 
-  async function getAvailability(item, type) {
-    const response = await fetch(
-      `${BASE_URL}/${type}/${item.id}/watch/providers?api_key=${API_KEY}`
-    );
-    const data = await response.json();
-    const providers = data.results.BR || data.results.US || data.results;
-    const flatrate = providers.flatrate || [];
-    const buy = providers.buy || [];
-    const rent = providers.rent || [];
-    let text = "Cinema";
-
-    if (flatrate.length > 0) {
-      text = flatrate.map((provider) => provider.provider_name).join(", ");
-    } else if (buy.length > 0 || rent.length > 0) {
-      text = "Streaming";
-    } else if (providers.tv) {
-      text = "Na TV";
-    }
-    return { text, isStreaming: text !== "Cinema" };
-  }
-
   async function createCard(item, trailerKey, type) {
     if (displayedItems.has(item.id)) return null;
 
@@ -78,22 +57,16 @@ document.addEventListener("DOMContentLoaded", () => {
     releaseDate.classList.add("release-date");
     card.appendChild(releaseDate);
 
-    /* const availability = document.createElement("p");
-    const availabilityData = await getAvailability(item, type);
-    availability.textContent = `Disponível: ${availabilityData.text}`;
-    availability.classList.add(availabilityData.isStreaming ? "TV" : "cinema");
-    card.appendChild(availability); */
-
     const ratingValue =
-      item.vote_average === 0 ? "Não avaliado" : item.vote_average;
-    const rating = document.createElement("p");
-    rating.textContent = `Avaliação: ${ratingValue}`;
-    rating.classList.add(
-      item.vote_average < 6 && item.vote_average > 0
-        ? "rating-low"
-        : "rating-high"
-    );
-    card.appendChild(rating);
+      type === "movie" ? item.vote_average : Math.round(item.vote_average);
+    if (ratingValue >= 6) {
+      const rating = document.createElement("p");
+      rating.textContent = `Avaliação: ${ratingValue}`;
+      rating.classList.add(ratingValue < 6 ? "rating-low" : "rating-high");
+      card.appendChild(rating);
+    } else {
+      return null;
+    }
 
     const overview = document.createElement("p");
     overview.textContent = `Sinopse: ${item.overview}`;
@@ -126,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchItems() {
     if (loading) return;
     loading = true;
+    toggleLoading(true);
 
     try {
       const [popularMoviesResponse, popularSeriesResponse, genresResponse] =
@@ -156,11 +130,15 @@ document.addEventListener("DOMContentLoaded", () => {
       allGenres = genresDataResponse.genres;
 
       const movies2024 = popularMoviesDataResponse.results.filter(
-        (movie) => new Date(movie.release_date).getFullYear() === 2024
+        (movie) =>
+          new Date(movie.release_date).getFullYear() === 2024 &&
+          movie.vote_average >= 6
       );
 
       const series2024 = popularSeriesDataResponse.results.filter(
-        (series) => new Date(series.first_air_date).getFullYear() === 2024
+        (series) =>
+          new Date(series.first_air_date).getFullYear() === 2024 &&
+          series.vote_average >= 6
       );
 
       allItems = [
@@ -185,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Erro ao buscar filmes e séries:", error);
     } finally {
       loading = false;
+      toggleLoading(false);
     }
   }
 
@@ -221,6 +200,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     currentPage = 1;
     displayItems();
+  }
+
+  function toggleLoading(show) {
+    const loadMoreButton = document.getElementById("load-more");
+    const spinner = document.getElementById("spinner");
+    if (show) {
+      loadMoreButton.disabled = true;
+      spinner.style.display = "inline-block";
+    } else {
+      loadMoreButton.disabled = false;
+      spinner.style.display = "none";
+    }
   }
 
   document.getElementById("filter-all").addEventListener("click", () => {
