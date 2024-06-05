@@ -22,7 +22,23 @@ document.addEventListener("DOMContentLoaded", () => {
     return genres.join(", ");
   }
 
-  function createCard(item, genres, trailerKey) {
+  async function getAvailability(item) {
+    const response = await fetch(
+      `${BASE_URL}/movie/${item.id}/watch/providers?api_key=${API_KEY}`
+    );
+    const data = await response.json();
+    const providers = data.results.BR || data.results.US || data.results;
+    const flatrate = providers.flatrate || [];
+    if (flatrate.length > 0) {
+      return {
+        text: flatrate.map((provider) => provider.provider_name).join(", "),
+        isStreaming: true,
+      };
+    }
+    return { text: "Cinema", isStreaming: false };
+  }
+
+  async function createCard(item, genres, trailerKey) {
     if (displayedItems.has(item.id)) return null;
 
     const card = document.createElement("div");
@@ -51,9 +67,11 @@ document.addEventListener("DOMContentLoaded", () => {
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    availability.textContent = `Faixa etária: ${
-      item.adult ? "Adulto" : "Livre"
-    }`;
+    const availabilityData = await getAvailability(item);
+    availability.textContent = `Disponível em: ${availabilityData.text}`;
+    availability.classList.add(
+      availabilityData.isStreaming ? "streaming" : "cinema"
+    );
     card.appendChild(availability);
 
     const ratingValue =
@@ -143,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (let item of itemsToDisplay) {
       const trailerKey = await fetchTrailer(item);
-      const card = createCard(item, genres, trailerKey);
+      const card = await createCard(item, genres, trailerKey);
       if (card) {
         container.appendChild(card);
       }
