@@ -131,3 +131,12 @@ main {
         flex: 1 1 calc(25% - 20px);
     }
 }
+/* Estilo para disponibilidade em cinemas */
+.cinema {
+    color: green;
+}
+
+/* Estilo para disponibilidade em streaming */
+.streaming {
+    color: blue;
+}
