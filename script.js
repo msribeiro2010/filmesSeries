@@ -54,9 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
     availability.textContent = `Disponível em: Cinema`;
     card.appendChild(availability);
 
+    const ratingValue = item.vote_average === 0 ? "n/v" : item.vote_average;
     const rating = document.createElement("p");
-    rating.textContent = `Avaliação: ${item.vote_average}`;
-    rating.classList.add(item.vote_average < 6 ? "rating-low" : "rating-high");
+    rating.textContent = `Avaliação: ${ratingValue}`;
+    rating.classList.add(
+      item.vote_average < 6 && item.vote_average > 0
+        ? "rating-low"
+        : "rating-high"
+    );
     card.appendChild(rating);
 
     if (trailerKey) {
