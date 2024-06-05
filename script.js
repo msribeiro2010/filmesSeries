@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   const itemsPerPage = 4;
   let displayedItems = new Set();
-  let allMovies = [];
+  let allItems = [];
   let loading = false;
 
   function formatDate(dateString) {
@@ -22,37 +22,36 @@ document.addEventListener("DOMContentLoaded", () => {
     return genres.join(", ");
   }
 
-  async function getAvailability(item) {
+  async function getAvailability(item, type) {
     const response = await fetch(
-      `${BASE_URL}/movie/${item.id}/watch/providers?api_key=${API_KEY}`
+      `${BASE_URL}/${type}/${item.id}/watch/providers?api_key=${API_KEY}`
     );
     const data = await response.json();
     const providers = data.results.BR || data.results.US || data.results;
     const flatrate = providers.flatrate || [];
+    const buy = providers.buy || [];
+    const rent = providers.rent || [];
+    let text = "Cinema";
+
     if (flatrate.length > 0) {
-      return {
-        text: flatrate.map((provider) => provider.provider_name).join(", "),
-        isStreaming: true,
-      };
+      text = flatrate.map((provider) => provider.provider_name).join(", ");
+    } else if (buy.length > 0 || rent.length > 0) {
+      text = "Streaming";
+    } else if (providers.tv) {
+      text = "Na TV";
     }
-    return { text: "Cinema", isStreaming: false };
+    return { text, isStreaming: text !== "Cinema" };
   }
 
-  async function fetchMovieDetails(movieId) {
-    const response = await fetch(
-      `${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=pt-BR`
-    );
-    if (response.ok) {
-      return await response.json();
-    }
-    return null;
-  }
-
-  async function createCard(item, genres, trailerKey) {
+  async function createCard(item, genres, trailerKey, type) {
     if (displayedItems.has(item.id)) return null;
 
     const card = document.createElement("div");
     card.classList.add("movie-series");
+
+    const typeLabel = document.createElement("h3");
+    typeLabel.textContent = type === "movie" ? "FILME" : "SÉRIE";
+    card.appendChild(typeLabel);
 
     const title = document.createElement("h2");
     title.textContent = item.title || item.name;
@@ -71,13 +70,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const releaseDate = document.createElement("p");
     releaseDate.textContent = `Data de Estreia: ${formatDate(
-      item.release_date
+      item.release_date || item.first_air_date
     )}`;
     releaseDate.classList.add("release-date");
     card.appendChild(releaseDate);
 
     const availability = document.createElement("p");
-    const availabilityData = await getAvailability(item);
+    const availabilityData = await getAvailability(item, type);
     availability.textContent = `Disponível em: ${availabilityData.text}`;
     availability.classList.add(
       availabilityData.isStreaming ? "streaming" : "cinema"
@@ -108,36 +107,13 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(trailer);
     }
 
-    const movieDetails = await fetchMovieDetails(item.id);
-    if (movieDetails) {
-      if (movieDetails.director) {
-        const director = document.createElement("p");
-        director.textContent = `Diretor: ${movieDetails.director}`;
-        card.appendChild(director);
-      }
-
-      if (movieDetails.cast) {
-        const cast = document.createElement("p");
-        cast.textContent = `Elenco: ${movieDetails.cast
-          .map((actor) => actor.name)
-          .join(", ")}`;
-        card.appendChild(cast);
-      }
-
-      if (movieDetails.runtime) {
-        const duration = document.createElement("p");
-        duration.textContent = `Duração: ${movieDetails.runtime} minutos`;
-        card.appendChild(duration);
-      }
-    }
-
     displayedItems.add(item.id);
     return card;
   }
 
-  async function fetchTrailer(item) {
+  async function fetchTrailer(item, type) {
     const response = await fetch(
-      `${BASE_URL}/movie/${item.id}/videos?api_key=${API_KEY}&language=pt-BR`
+      `${BASE_URL}/${type}/${item.id}/videos?api_key=${API_KEY}&language=pt-BR`
     );
     const data = await response.json();
     const trailer = data.results.find(
@@ -146,23 +122,34 @@ document.addEventListener("DOMContentLoaded", () => {
     return trailer ? trailer.key : null;
   }
 
-  async function fetchMovies() {
+  async function fetchItems() {
     if (loading) return;
     loading = true;
 
     try {
-      const [upcomingMoviesResponse, genresResponse] = await Promise.all([
-        fetch(
-          `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
-        ),
-        fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=pt-BR`),
-      ]);
+      const [upcomingMoviesResponse, popularSeriesResponse, genresResponse] =
+        await Promise.all([
+          fetch(
+            `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
+          ),
+          fetch(
+            `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=pt-BR&page=${currentPage}`
+          ),
+          fetch(
+            `${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=pt-BR`
+          ),
+        ]);
 
-      if (!upcomingMoviesResponse.ok || !genresResponse.ok) {
+      if (
+        !upcomingMoviesResponse.ok ||
+        !popularSeriesResponse.ok ||
+        !genresResponse.ok
+      ) {
         throw new Error("Falha ao buscar dados");
       }
 
       const upcomingMoviesDataResponse = await upcomingMoviesResponse.json();
+      const popularSeriesDataResponse = await popularSeriesResponse.json();
       const genresDataResponse = await genresResponse.json();
 
       const allGenres = genresDataResponse.genres;
@@ -171,18 +158,27 @@ document.addEventListener("DOMContentLoaded", () => {
         (movie) => new Date(movie.release_date).getFullYear() === 2024
       );
 
-      allMovies = [...allMovies, ...movies2024];
+      const series2024 = popularSeriesDataResponse.results.filter(
+        (series) => new Date(series.first_air_date).getFullYear() === 2024
+      );
 
-      allMovies.sort(
+      allItems = [
+        ...allItems,
+        ...movies2024.map((item) => ({ ...item, type: "movie" })),
+        ...series2024.map((item) => ({ ...item, type: "tv" })),
+      ];
+
+      allItems.sort(
         (a, b) =>
-          new Date(b.release_date) - new Date(a.release_date) ||
+          new Date(b.release_date || b.first_air_date) -
+            new Date(a.release_date || a.first_air_date) ||
           b.vote_average - a.vote_average
       );
 
       displayItems(allGenres);
       currentPage++;
     } catch (error) {
-      console.error("Erro ao buscar filmes:", error);
+      console.error("Erro ao buscar filmes e séries:", error);
     } finally {
       loading = false;
     }
@@ -190,20 +186,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function displayItems(genres) {
     const container = document.getElementById("movies-series");
-    const itemsToDisplay = allMovies.slice(0, itemsPerPage);
+    const itemsToDisplay = allItems.slice(0, itemsPerPage);
 
     for (let item of itemsToDisplay) {
-      const trailerKey = await fetchTrailer(item);
-      const card = await createCard(item, genres, trailerKey);
+      const trailerKey = await fetchTrailer(item, item.type);
+      const card = await createCard(item, genres, trailerKey, item.type);
       if (card) {
         container.appendChild(card);
       }
     }
 
-    allMovies = allMovies.slice(itemsPerPage);
+    allItems = allItems.slice(itemsPerPage);
   }
 
-  document.getElementById("load-more").addEventListener("click", fetchMovies);
+  document.getElementById("load-more").addEventListener("click", fetchItems);
 
-  fetchMovies();
+  fetchItems();
 });
