@@ -38,6 +38,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return { text: "Cinema", isStreaming: false };
   }
 
+  async function fetchMovieDetails(movieId) {
+    const response = await fetch(
+      `${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=pt-BR`
+    );
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  }
+
   async function createCard(item, genres, trailerKey) {
     if (displayedItems.has(item.id)) return null;
 
@@ -98,17 +108,27 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(trailer);
     }
 
-    // Adicionar mais informações, como diretor, elenco, duração, etc.
-    if (item.director) {
-      const director = document.createElement("p");
-      director.textContent = `Diretor: ${item.director}`;
-      card.appendChild(director);
-    }
+    const movieDetails = await fetchMovieDetails(item.id);
+    if (movieDetails) {
+      if (movieDetails.director) {
+        const director = document.createElement("p");
+        director.textContent = `Diretor: ${movieDetails.director}`;
+        card.appendChild(director);
+      }
 
-    if (item.cast) {
-      const cast = document.createElement("p");
-      cast.textContent = `Elenco: ${item.cast.join(", ")}`;
-      card.appendChild(cast);
+      if (movieDetails.cast) {
+        const cast = document.createElement("p");
+        cast.textContent = `Elenco: ${movieDetails.cast
+          .map((actor) => actor.name)
+          .join(", ")}`;
+        card.appendChild(cast);
+      }
+
+      if (movieDetails.runtime) {
+        const duration = document.createElement("p");
+        duration.textContent = `Duração: ${movieDetails.runtime} minutos`;
+        card.appendChild(duration);
+      }
     }
 
     displayedItems.add(item.id);
