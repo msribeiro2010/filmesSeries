@@ -85,6 +85,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     card.appendChild(rating);
 
+    const overview = document.createElement("p");
+    overview.textContent = `Sinopse: ${item.overview}`;
+    card.appendChild(overview);
+
     if (trailerKey) {
       const trailer = document.createElement("iframe");
       trailer.src = `${YOUTUBE_BASE_URL}${trailerKey}`;
@@ -94,9 +98,18 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(trailer);
     }
 
-    const overview = document.createElement("p");
-    overview.textContent = `Sinopse: ${item.overview}`;
-    card.appendChild(overview);
+    // Adicionar mais informações, como diretor, elenco, duração, etc.
+    if (item.director) {
+      const director = document.createElement("p");
+      director.textContent = `Diretor: ${item.director}`;
+      card.appendChild(director);
+    }
+
+    if (item.cast) {
+      const cast = document.createElement("p");
+      cast.textContent = `Elenco: ${item.cast.join(", ")}`;
+      card.appendChild(cast);
+    }
 
     displayedItems.add(item.id);
     return card;
