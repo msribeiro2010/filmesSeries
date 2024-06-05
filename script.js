@@ -2,14 +2,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_KEY = "f5cc2dc1b4fcf4fd0192c0bd2ad8d2a8";
   const BASE_URL = "https://api.themoviedb.org/3";
   const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+  const YOUTUBE_BASE_URL = "https://www.youtube.com/embed/";
   const currentDate = new Date();
   let currentPage = 1;
   const itemsPerPage = 4;
-  let popularMoviesData = [];
-  let upcomingMoviesData = [];
-  let popularSeriesData = [];
-  let airingTodaySeriesData = [];
-  let currentIndex = 0;
+  let displayedItems = new Set();
   let loading = false;
 
   function formatDate(dateString) {
@@ -24,7 +21,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return genres.join(", ");
   }
 
-  function createCard(item, type, genres) {
+  function createCard(item, type, genres, trailerKey) {
+    if (displayedItems.has(item.id)) return null;
+
     const card = document.createElement("div");
     card.classList.add("movie-series");
 
@@ -65,11 +64,33 @@ document.addEventListener("DOMContentLoaded", () => {
     rating.classList.add(item.vote_average < 6 ? "rating-low" : "rating-high");
     card.appendChild(rating);
 
+    if (trailerKey) {
+      const trailer = document.createElement("iframe");
+      trailer.src = `${YOUTUBE_BASE_URL}${trailerKey}`;
+      trailer.width = "100%";
+      trailer.height = "315";
+      trailer.allowFullscreen = true;
+      card.appendChild(trailer);
+    }
+
     const overview = document.createElement("p");
     overview.textContent = `Sinopse: ${item.overview}`;
     card.appendChild(overview);
 
+    displayedItems.add(item.id);
     return card;
+  }
+
+  async function fetchTrailer(item) {
+    const type = item.release_date ? "movie" : "tv";
+    const response = await fetch(
+      `${BASE_URL}/${type}/${item.id}/videos?api_key=${API_KEY}&language=pt-BR`
+    );
+    const data = await response.json();
+    const trailer = data.results.find(
+      (video) => video.type === "Trailer" && video.site === "YouTube"
+    );
+    return trailer ? trailer.key : null;
   }
 
   async function fetchMoviesAndSeries() {
@@ -126,89 +147,35 @@ document.addEventListener("DOMContentLoaded", () => {
           (series) => new Date(series.first_air_date) >= currentDate
         );
 
-      popularMoviesData = [
-        ...popularMoviesData,
+      const allItems = [
         ...popularMoviesDataResponse.results,
-      ];
-      upcomingMoviesData = [...upcomingMoviesData, ...upcomingMoviesFiltered];
-      popularSeriesData = [
-        ...popularSeriesData,
+        ...upcomingMoviesFiltered,
         ...popularSeriesDataResponse.results,
-      ];
-      airingTodaySeriesData = [
-        ...airingTodaySeriesData,
         ...airingTodaySeriesFiltered,
       ];
 
-      displayItems(allGenres);
+      const uniqueItems = allItems.filter(
+        (item, index, self) => self.findIndex((t) => t.id === item.id) === index
+      );
+
+      for (let item of uniqueItems.slice(0, itemsPerPage)) {
+        const trailerKey = await fetchTrailer(item);
+        const card = createCard(
+          item,
+          item.release_date ? "Filme" : "Série",
+          allGenres,
+          trailerKey
+        );
+        if (card) {
+          document.getElementById("movies-series").appendChild(card);
+        }
+      }
+
       currentPage++;
     } catch (error) {
       console.error("Erro ao buscar filmes e séries:", error);
     } finally {
       loading = false;
-    }
-  }
-
-  function displayItems(genres) {
-    const container = document.getElementById("movies-series");
-    let itemsDisplayed = 0;
-
-    while (
-      itemsDisplayed < itemsPerPage &&
-      (currentIndex < popularMoviesData.length ||
-        currentIndex < upcomingMoviesData.length ||
-        currentIndex < popularSeriesData.length ||
-        currentIndex < airingTodaySeriesData.length)
-    ) {
-      if (currentIndex < popularMoviesData.length) {
-        const card = createCard(
-          popularMoviesData[currentIndex],
-          "Filme",
-          genres
-        );
-        container.appendChild(card);
-        currentIndex++;
-        itemsDisplayed++;
-      }
-      if (
-        itemsDisplayed < itemsPerPage &&
-        currentIndex < upcomingMoviesData.length
-      ) {
-        const card = createCard(
-          upcomingMoviesData[currentIndex],
-          "Filme (Próxima Estreia)",
-          genres
-        );
-        container.appendChild(card);
-        currentIndex++;
-        itemsDisplayed++;
-      }
-      if (
-        itemsDisplayed < itemsPerPage &&
-        currentIndex < popularSeriesData.length
-      ) {
-        const card = createCard(
-          popularSeriesData[currentIndex],
-          "Série",
-          genres
-        );
-        container.appendChild(card);
-        currentIndex++;
-        itemsDisplayed++;
-      }
-      if (
-        itemsDisplayed < itemsPerPage &&
-        currentIndex < airingTodaySeriesData.length
-      ) {
-        const card = createCard(
-          airingTodaySeriesData[currentIndex],
-          "Série (Próxima Estreia)",
-          genres
-        );
-        container.appendChild(card);
-        currentIndex++;
-        itemsDisplayed++;
-      }
     }
   }
 
