@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_KEY = "f5cc2dc1b4fcf4fd0192c0bd2ad8d2a8";
   const BASE_URL = "https://api.themoviedb.org/3";
   const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+  const YOUTUBE_BASE_URL = "https://www.youtube.com/embed/";
   let currentPage = 1;
   let loading = false;
   let allItems = [];
@@ -43,6 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Função para buscar o trailer
+  async function fetchTrailer(itemId, type) {
+    const response = await fetch(`${BASE_URL}/${type}/${itemId}/videos?api_key=${API_KEY}&language=pt-BR`);
+    const data = await response.json();
+    const trailer = data.results.find(video => video.type === "Trailer" && video.site === "YouTube");
+    return trailer ? trailer.key : null;
+  }
+
   // Função para criar o card de filmes/séries
   async function createCard(item, mediaType) {
     const card = document.createElement("div");
@@ -73,6 +82,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const platforms = await fetchProviders(item.id, mediaType);
     platformLabel.textContent = `Disponível em: ${platforms}`;
+
+    // Buscar e exibir trailer
+    const trailerKey = await fetchTrailer(item.id, mediaType);
+    if (trailerKey) {
+      const trailer = document.createElement("iframe");
+      trailer.src = `${YOUTUBE_BASE_URL}${trailerKey}`;
+      trailer.width = "100%";
+      trailer.height = "315";
+      trailer.allowFullscreen = true;
+      card.appendChild(trailer);
+    }
 
     document.getElementById("movies-series").appendChild(card);
   }
