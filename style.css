@@ -29,18 +29,22 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1 {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 20px;
-    text-align: center;
-    width: 100%;
-    margin: 0;
-    transition: background-color 0.3s ease;
+.header {
     position: sticky;
     top: 0;
     z-index: 1000;
+    background-color: var(--bg-color);
+    width: 100%;
+    padding: 0;
     box-shadow: 0 2px 10px var(--shadow-color);
+}
+
+.header h1 {
+    margin: 0;
+    padding: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
 }
 
 .theme-toggle {
@@ -62,18 +66,15 @@ h1 {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.filter-buttons {
+.filter-buttons, .sort-buttons {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin: 20px;
+    margin: 10px auto;
     width: 100%;
     flex-wrap: wrap;
-    position: sticky;
-    top: 80px;
-    z-index: 999;
+    padding: 10px;
     background-color: var(--bg-color);
-    padding: 10px 0;
 }
 
 .filter-buttons button {
@@ -327,18 +328,6 @@ h1 {
     background-color: rgba(231, 76, 60, 0.9);
 }
 
-.sort-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 10px 0;
-    padding: 10px;
-    background-color: var(--bg-color);
-    position: sticky;
-    top: 140px;
-    z-index: 998;
-}
-
 .sort-buttons button {
     padding: 8px 16px;
     background-color: var(--secondary-color);
@@ -516,56 +505,34 @@ h1 {
 }
 
 @media (max-width: 480px) {
-    header {
-        padding: 10px;
-    }
-
-    h1 {
-        font-size: 1.5em;
-    }
-
-    main {
-        grid-template-columns: 1fr;
-        gap: 20px;
-        padding: 10px;
-    }
-
-    .movie-series {
-        max-width: 300px;
-        margin: 0 auto;
+    .header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
     }
 
     .filter-buttons, .sort-buttons {
+        position: relative;
+        top: 0;
         flex-direction: column;
         align-items: stretch;
-        padding: 10px;
+        padding: 5px 10px;
+        margin: 5px 0;
+        gap: 5px;
     }
 
     button {
         width: 100%;
-        margin: 5px 0;
-        padding: 10px;
+        margin: 2px 0;
+        padding: 12px;
         font-size: 0.9em;
     }
 
-    .genre-container {
-        justify-content: center;
-    }
-
-    .streaming-container {
-        justify-content: center;
-    }
-
-    #spinner {
-        margin: 20px 0;
-    }
-
-    .movie-info {
-        text-align: center;
+    .movies-series-grid {
+        padding-top: 10px;
     }
 }
 
-/* Ajustes para telas muito pequenas */
 @media (max-width: 320px) {
     .movie-series {
         max-width: 250px;
