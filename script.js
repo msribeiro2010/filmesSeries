@@ -89,6 +89,7 @@ async function fetchItems() {
 
         let newItems = [];
         const currentYear = new Date().getFullYear();
+        const lastYear = currentYear - 1; // 2024
         const currentDate = new Date().toISOString().split('T')[0];
         
         // Se for lançamentos futuros, usa uma lógica diferente
@@ -111,15 +112,18 @@ async function fetchItems() {
                 api_key: API_KEY,
                 language: 'pt-BR',
                 'vote_count.gte': '100',
-                page: currentPage
+                page: currentPage,
+                // Define o período de 2024 até hoje para todos os filtros
+                'primary_release_date.gte': `${lastYear}-01-01`,
+                'primary_release_date.lte': `${currentYear}-12-31`,
+                'first_air_date.gte': `${lastYear}-01-01`,
+                'first_air_date.lte': `${currentYear}-12-31`
             });
 
             if (currentSort === 'date') {
-                // Para "Mais Recentes", mostra apenas do ano atual
-                baseParams.append('primary_release_year', currentYear.toString());
-                baseParams.append('first_air_date_year', currentYear.toString());
+                // Para "Mais Recentes", ordena por data
                 baseParams.append('sort_by', 'primary_release_date.desc,first_air_date.desc');
-            } else {
+            } else if (currentSort === 'rating') {
                 // Para "Melhor Avaliados"
                 baseParams.append('sort_by', 'vote_average.desc');
                 baseParams.append('vote_average.gte', '7');
@@ -133,7 +137,12 @@ async function fetchItems() {
                 requests.push(
                     fetch(movieUrl)
                         .then(res => res.json())
-                        .then(data => data.results.map(item => ({ ...item, media_type: 'movie' })))
+                        .then(data => data.results
+                            .filter(movie => {
+                                const releaseDate = new Date(movie.release_date);
+                                return releaseDate.getFullYear() >= lastYear;
+                            })
+                            .map(item => ({ ...item, media_type: 'movie' })))
                 );
             }
             
@@ -144,7 +153,12 @@ async function fetchItems() {
                 requests.push(
                     fetch(tvUrl)
                         .then(res => res.json())
-                        .then(data => data.results.map(item => ({ ...item, media_type: 'tv' })))
+                        .then(data => data.results
+                            .filter(tv => {
+                                const firstAirDate = new Date(tv.first_air_date);
+                                return firstAirDate.getFullYear() >= lastYear;
+                            })
+                            .map(item => ({ ...item, media_type: 'tv' })))
                 );
             }
 
