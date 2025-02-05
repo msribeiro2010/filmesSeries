@@ -4,8 +4,8 @@ const API_KEY = 'f5cc2dc1b4fcf4fd0192c0bd2ad8d2a8';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 // Estado global
-let currentFilter = 'all';
-let currentSort = 'date';
+let currentFilter = "all";
+let currentSort = "combined"; // Novo valor padrão
 let currentPage = 1;
 let loading = false;
 let allItems = [];
@@ -81,7 +81,7 @@ async function fetchItems() {
             return;
         }
 
-        // Remove os skeletons na primeira página
+        // Remove os itens anteriores na primeira página
         if (currentPage === 1) {
             mainContainer.innerHTML = "";
             allItems = [];
@@ -93,15 +93,56 @@ async function fetchItems() {
         if (currentSort === 'upcoming') {
             if (currentPage === 1) { // Só carrega na primeira página
                 newItems = await fetchUpcoming();
+                
+                // Adiciona uma indicação de quanto tempo falta para o lançamento
+                newItems = newItems.map(item => {
+                    const releaseDate = new Date(item.release_date || item.first_air_date);
+                    const today = new Date();
+                    const daysUntilRelease = Math.ceil((releaseDate - today) / (1000 * 60 * 60 * 24));
+                    return {
+                        ...item,
+                        daysUntilRelease
+                    };
+                });
             }
         } else {
+            // Lógica existente para outros tipos de busca
+            const currentYear = new Date().getFullYear();
+            const lastYear = currentYear - 1;
+
+            // Configuração base para filmes e séries recentes e bem avaliados
+            const movieConfig = {
+                url: `${BASE_URL}/discover/movie`,
+                params: new URLSearchParams({
+                    api_key: API_KEY,
+                    language: 'pt-BR',
+                    sort_by: 'vote_average.desc',
+                    'vote_count.gte': '300',
+                    'vote_average.gte': '7',
+                    'primary_release_date.gte': `${lastYear}-01-01`,
+                    'primary_release_date.lte': `${currentYear}-12-31`,
+                    page: currentPage
+                })
+            };
+
+            const tvConfig = {
+                url: `${BASE_URL}/discover/tv`,
+                params: new URLSearchParams({
+                    api_key: API_KEY,
+                    language: 'pt-BR',
+                    sort_by: 'vote_average.desc',
+                    'vote_count.gte': '300',
+                    'vote_average.gte': '7',
+                    'first_air_date.gte': `${lastYear}-01-01`,
+                    'first_air_date.lte': `${currentYear}-12-31`,
+                    page: currentPage
+                })
+            };
+
             const requests = [];
-            const sortParam = currentSort === 'rating' ? 'vote_average' : 
-                            currentSort === 'popularity' ? 'popularity' : 
-                            'release_date';
             
             if (currentFilter === "all" || currentFilter === "movie") {
-                const movieUrl = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&sort_by=${sortParam}.desc&page=${currentPage}&vote_count.gte=100`;
+                const movieUrl = `${movieConfig.url}?${movieConfig.params.toString()}`;
                 console.log("Buscando filmes:", movieUrl);
                 requests.push(
                     fetch(movieUrl)
@@ -111,7 +152,7 @@ async function fetchItems() {
             }
             
             if (currentFilter === "all" || currentFilter === "tv") {
-                const tvUrl = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&sort_by=${sortParam}.desc&page=${currentPage}&vote_count.gte=100`;
+                const tvUrl = `${tvConfig.url}?${tvConfig.params.toString()}`;
                 console.log("Buscando séries:", tvUrl);
                 requests.push(
                     fetch(tvUrl)
@@ -122,27 +163,36 @@ async function fetchItems() {
 
             const results = await Promise.all(requests);
             newItems = results.flat();
+            
+            console.log("Novos itens encontrados:", newItems.length);
+            
+            // Combina a ordenação por data e avaliação
+            newItems.sort((a, b) => {
+                // Primeiro compara as avaliações
+                const ratingDiff = b.vote_average - a.vote_average;
+                if (Math.abs(ratingDiff) > 0.5) { // Se a diferença de avaliação for significativa
+                    return ratingDiff;
+                }
+                
+                // Se as avaliações forem próximas, ordena por data
+                const dateA = new Date(a.release_date || a.first_air_date);
+                const dateB = new Date(b.release_date || b.first_air_date);
+                return dateB - dateA;
+            });
+
+            allItems = [...allItems, ...newItems];
         }
-        
-        console.log("Novos itens encontrados:", newItems.length);
-        
-        // Filtra os itens com nota maior que 6
-        const filteredItems = newItems.filter(item => item.vote_average >= 6);
-        allItems = [...allItems, ...filteredItems];
-        
-        // Ordena os itens
-        const sortedItems = sortItems(filteredItems, currentSort);
-        
-        // Cria e adiciona os cards diretamente
-        for (const item of sortedItems) {
+
+        // Cria e adiciona os cards
+        for (const item of newItems) {
             const card = await createCard(item, item.media_type);
             if (card) {
                 mainContainer.appendChild(card);
             }
         }
 
-        // Só incrementa a página se não for lançamentos futuros ou se houver mais itens
-        if (currentSort !== 'upcoming' || newItems.length > 0) {
+        // Só incrementa a página se não for lançamentos futuros
+        if (currentSort !== 'upcoming') {
             currentPage++;
         }
     } catch (error) {
@@ -188,6 +238,20 @@ function sortItems(items, sortType) {
                 return dateA - dateB;
             });
         
+        case 'combined':
+            return sorted.sort((a, b) => {
+                // Primeiro compara as avaliações
+                const ratingDiff = b.vote_average - a.vote_average;
+                if (Math.abs(ratingDiff) > 0.5) { // Se a diferença de avaliação for significativa
+                    return ratingDiff;
+                }
+                
+                // Se as avaliações forem próximas, ordena por data
+                const dateA = new Date(a.release_date || a.first_air_date);
+                const dateB = new Date(b.release_date || b.first_air_date);
+                return dateB - dateA;
+            });
+        
         default: // date
             return sorted.sort((a, b) => {
                 if (isUSContent(a) !== isUSContent(b)) {
@@ -221,28 +285,81 @@ async function createStreamingSection(item, mediaType) {
             const streamingContainer = document.createElement("div");
             streamingContainer.classList.add("streaming-container");
             
+            // Lista de plataformas a serem ignoradas
+            const ignoredPlatforms = [
+                'Netflix basic with Ads',
+                'Max Amazon Channel',
+                'Crunchyroll',
+                'Crunchyroll Amazon Channel',
+                'Netflix basic',
+                'Netflix Basic',
+                'Netflix Premium',
+                'Netflix Standard',
+                'Amazon Prime Video Kids',
+                'Paramount+ Amazon Channel',
+                'MGM Amazon Channel',
+                'Discovery+ Amazon Channel',
+                'Apple TV Plus Amazon Channel',
+                'Lionsgate+ Amazon Channel',
+                'Paramount Plus Amazon Channel',
+                'Crunchyroll Premium',
+                'Crunchyroll Basic'
+            ];
+
+            // Lista de nomes alternativos para normalizar
+            const platformAliases = {
+                'Netflix basic with Ads': 'Netflix',
+                'Netflix Basic': 'Netflix',
+                'Netflix Premium': 'Netflix',
+                'Netflix Standard': 'Netflix',
+                'Netflix basic': 'Netflix',
+                'Amazon Prime Video Kids': 'Amazon Prime Video',
+                'Max Amazon Channel': 'Max',
+                'HBO Max': 'Max'
+            };
+            
             // Função para adicionar plataformas
             const addPlatforms = (platforms, type) => {
                 if (platforms && platforms.length > 0) {
+                    // Filtra e normaliza as plataformas
+                    const uniquePlatforms = new Map();
+                    
                     platforms.forEach(platform => {
+                        // Pula plataformas da lista de ignorados
+                        if (ignoredPlatforms.includes(platform.provider_name)) {
+                            return;
+                        }
+                        
+                        // Usa o nome normalizado se existir, senão usa o nome original
+                        const normalizedName = platformAliases[platform.provider_name] || platform.provider_name;
+                        
+                        // Só adiciona se ainda não tivermos essa plataforma
+                        if (!uniquePlatforms.has(normalizedName)) {
+                            uniquePlatforms.set(normalizedName, platform);
+                        }
+                    });
+                    
+                    // Adiciona as plataformas únicas ao container
+                    uniquePlatforms.forEach((platform, normalizedName) => {
                         const platformContainer = document.createElement("div");
                         platformContainer.classList.add("platform-container");
                         
                         const platformImg = document.createElement("img");
                         platformImg.src = `https://image.tmdb.org/t/p/original${platform.logo_path}`;
-                        platformImg.alt = platform.provider_name;
-                        platformImg.title = platform.provider_name;
+                        platformImg.alt = normalizedName;
+                        platformImg.title = normalizedName;
                         platformImg.loading = "lazy";
                         
                         const platformName = document.createElement("span");
                         platformName.classList.add("platform-name");
-                        platformName.textContent = platform.provider_name;
+                        platformName.textContent = normalizedName;
                         
                         platformContainer.appendChild(platformImg);
                         platformContainer.appendChild(platformName);
                         streamingContainer.appendChild(platformContainer);
                     });
-                    return true;
+                    
+                    return uniquePlatforms.size > 0;
                 }
                 return false;
             };
@@ -339,7 +456,7 @@ async function createCard(item, mediaType) {
             };
             imageContainer.appendChild(trailerButton);
         }
-
+        
         const info = document.createElement("div");
         info.classList.add("movie-info");
         
@@ -353,12 +470,21 @@ async function createCard(item, mediaType) {
         const date = document.createElement("p");
         date.classList.add("date");
         const releaseDate = new Date(item.release_date || item.first_air_date);
-        date.textContent = releaseDate.toLocaleDateString('pt-BR');
+        
+        // Se for um lançamento futuro, mostra quantos dias faltam
+        if (item.daysUntilRelease) {
+            date.classList.add("upcoming-date");
+            date.textContent = item.daysUntilRelease === 1 
+                ? "Lança amanhã!"
+                : `Faltam ${item.daysUntilRelease} dias`;
+        } else {
+            date.textContent = releaseDate.toLocaleDateString('pt-BR');
+        }
         
         info.appendChild(title);
         info.appendChild(rating);
         info.appendChild(date);
-        
+
         // Adiciona os gêneros
         if (item.genre_ids && item.genre_ids.length > 0) {
             const genres = await getGenres(item.genre_ids, mediaType);
@@ -444,30 +570,34 @@ function setSort(sort) {
 
 // Função para buscar lançamentos futuros
 async function fetchUpcoming() {
-    const currentDate = new Date();
-    const nextMonth = new Date(currentDate);
-    nextMonth.setMonth(currentDate.getMonth() + 1);
+    const currentDate = new Date().toISOString().split('T')[0];
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
     
     try {
         const [upcomingMovies, upcomingTV] = await Promise.all([
             fetch(`${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&region=BR`)
                 .then(res => res.json())
-                .then(data => data.results.map(item => ({ ...item, media_type: 'movie' }))),
-            fetch(`${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&first_air_date.gte=${formatDate(currentDate)}&first_air_date.lte=${formatDate(nextMonth)}`)
+                .then(data => data.results
+                    .filter(movie => movie.release_date > currentDate)
+                    .map(item => ({ ...item, media_type: 'movie' }))),
+            fetch(`${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&first_air_date.gte=${currentDate}&first_air_date.lte=${nextYear.toISOString().split('T')[0]}`)
                 .then(res => res.json())
-                .then(data => data.results.map(item => ({ ...item, media_type: 'tv' })))
+                .then(data => data.results
+                    .filter(tv => tv.first_air_date > currentDate)
+                    .map(item => ({ ...item, media_type: 'tv' })))
         ]);
 
-        return [...upcomingMovies, ...upcomingTV]
-            .filter(item => {
-                const releaseDate = new Date(item.release_date || item.first_air_date);
-                return releaseDate > currentDate;
-            })
+        // Combina e ordena por data de lançamento
+        const allUpcoming = [...upcomingMovies, ...upcomingTV]
             .sort((a, b) => {
                 const dateA = new Date(a.release_date || a.first_air_date);
                 const dateB = new Date(b.release_date || b.first_air_date);
                 return dateA - dateB;
             });
+
+        console.log(`Encontrados ${allUpcoming.length} lançamentos futuros`);
+        return allUpcoming;
     } catch (error) {
         console.error("Erro ao buscar lançamentos futuros:", error);
         return [];

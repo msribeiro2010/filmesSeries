@@ -378,6 +378,17 @@ h1 {
     font-weight: bold;
 }
 
+.upcoming-date {
+    color: #e50914;
+    font-weight: bold;
+    font-size: 0.9em;
+    background: rgba(229, 9, 20, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
 .streaming-container {
     display: flex;
     flex-wrap: wrap;
