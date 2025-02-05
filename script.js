@@ -88,61 +88,47 @@ async function fetchItems() {
         }
 
         let newItems = [];
+        const currentYear = new Date().getFullYear();
+        const currentDate = new Date().toISOString().split('T')[0];
         
         // Se for lançamentos futuros, usa uma lógica diferente
         if (currentSort === 'upcoming') {
-            if (currentPage === 1) { // Só carrega na primeira página
+            if (currentPage === 1) {
                 newItems = await fetchUpcoming();
-                
-                // Adiciona uma indicação de quanto tempo falta para o lançamento
-                newItems = newItems.map(item => {
-                    const releaseDate = new Date(item.release_date || item.first_air_date);
-                    const today = new Date();
-                    const daysUntilRelease = Math.ceil((releaseDate - today) / (1000 * 60 * 60 * 24));
-                    return {
-                        ...item,
-                        daysUntilRelease
-                    };
-                });
+                newItems = newItems.map(item => ({
+                    ...item,
+                    daysUntilRelease: Math.ceil(
+                        (new Date(item.release_date || item.first_air_date) - new Date()) / 
+                        (1000 * 60 * 60 * 24)
+                    )
+                }));
             }
         } else {
-            // Lógica existente para outros tipos de busca
-            const currentYear = new Date().getFullYear();
-            const lastYear = currentYear - 1;
-
-            // Configuração base para filmes e séries recentes e bem avaliados
-            const movieConfig = {
-                url: `${BASE_URL}/discover/movie`,
-                params: new URLSearchParams({
-                    api_key: API_KEY,
-                    language: 'pt-BR',
-                    sort_by: 'vote_average.desc',
-                    'vote_count.gte': '300',
-                    'vote_average.gte': '7',
-                    'primary_release_date.gte': `${lastYear}-01-01`,
-                    'primary_release_date.lte': `${currentYear}-12-31`,
-                    page: currentPage
-                })
-            };
-
-            const tvConfig = {
-                url: `${BASE_URL}/discover/tv`,
-                params: new URLSearchParams({
-                    api_key: API_KEY,
-                    language: 'pt-BR',
-                    sort_by: 'vote_average.desc',
-                    'vote_count.gte': '300',
-                    'vote_average.gte': '7',
-                    'first_air_date.gte': `${lastYear}-01-01`,
-                    'first_air_date.lte': `${currentYear}-12-31`,
-                    page: currentPage
-                })
-            };
-
             const requests = [];
             
+            // Configuração base para filmes e séries
+            const baseParams = new URLSearchParams({
+                api_key: API_KEY,
+                language: 'pt-BR',
+                'vote_count.gte': '100',
+                page: currentPage
+            });
+
+            if (currentSort === 'date') {
+                // Para "Mais Recentes", mostra apenas do ano atual
+                baseParams.append('primary_release_year', currentYear.toString());
+                baseParams.append('first_air_date_year', currentYear.toString());
+                baseParams.append('sort_by', 'primary_release_date.desc,first_air_date.desc');
+            } else {
+                // Para "Melhor Avaliados"
+                baseParams.append('sort_by', 'vote_average.desc');
+                baseParams.append('vote_average.gte', '7');
+                baseParams.append('vote_count.gte', '300');
+            }
+            
             if (currentFilter === "all" || currentFilter === "movie") {
-                const movieUrl = `${movieConfig.url}?${movieConfig.params.toString()}`;
+                const movieParams = new URLSearchParams(baseParams);
+                const movieUrl = `${BASE_URL}/discover/movie?${movieParams.toString()}`;
                 console.log("Buscando filmes:", movieUrl);
                 requests.push(
                     fetch(movieUrl)
@@ -152,7 +138,8 @@ async function fetchItems() {
             }
             
             if (currentFilter === "all" || currentFilter === "tv") {
-                const tvUrl = `${tvConfig.url}?${tvConfig.params.toString()}`;
+                const tvParams = new URLSearchParams(baseParams);
+                const tvUrl = `${BASE_URL}/discover/tv?${tvParams.toString()}`;
                 console.log("Buscando séries:", tvUrl);
                 requests.push(
                     fetch(tvUrl)
@@ -163,28 +150,16 @@ async function fetchItems() {
 
             const results = await Promise.all(requests);
             newItems = results.flat();
-            
-            console.log("Novos itens encontrados:", newItems.length);
-            
-            // Combina a ordenação por data e avaliação
-            newItems.sort((a, b) => {
-                // Primeiro compara as avaliações
-                const ratingDiff = b.vote_average - a.vote_average;
-                if (Math.abs(ratingDiff) > 0.5) { // Se a diferença de avaliação for significativa
-                    return ratingDiff;
-                }
-                
-                // Se as avaliações forem próximas, ordena por data
-                const dateA = new Date(a.release_date || a.first_air_date);
-                const dateB = new Date(b.release_date || b.first_air_date);
-                return dateB - dateA;
-            });
-
-            allItems = [...allItems, ...newItems];
         }
-
+        
+        console.log("Novos itens encontrados:", newItems.length);
+        
+        // Ordena os itens
+        const sortedItems = sortItems(newItems, currentSort);
+        allItems = [...allItems, ...sortedItems];
+        
         // Cria e adiciona os cards
-        for (const item of newItems) {
+        for (const item of sortedItems) {
             const card = await createCard(item, item.media_type);
             if (card) {
                 mainContainer.appendChild(card);
