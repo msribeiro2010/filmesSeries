@@ -262,6 +262,43 @@ async function createStreamingSection(item, mediaType) {
     return null;
 }
 
+// Função para buscar trailer
+async function fetchTrailer(mediaType, id) {
+    try {
+        // Tenta primeiro em português
+        let response = await fetch(`${BASE_URL}/${mediaType}/${id}/videos?api_key=${API_KEY}&language=pt-BR`);
+        let data = await response.json();
+        
+        // Se não encontrar em português, busca em inglês
+        if (!data.results.length) {
+            response = await fetch(`${BASE_URL}/${mediaType}/${id}/videos?api_key=${API_KEY}&language=en-US`);
+            data = await response.json();
+        }
+        
+        // Procura primeiro por trailers oficiais
+        let trailer = data.results.find(v => 
+            v.type === "Trailer" && 
+            (v.name.toLowerCase().includes("official") || 
+             v.name.toLowerCase().includes("oficial"))
+        );
+        
+        // Se não encontrar trailer oficial, procura qualquer trailer
+        if (!trailer) {
+            trailer = data.results.find(v => v.type === "Trailer");
+        }
+        
+        // Se ainda não encontrar, usa qualquer vídeo disponível
+        if (!trailer && data.results.length > 0) {
+            trailer = data.results[0];
+        }
+        
+        return trailer ? trailer.key : null;
+    } catch (error) {
+        console.error("Erro ao buscar trailer:", error);
+        return null;
+    }
+}
+
 // Função para criar o card
 async function createCard(item, mediaType) {
     try {
@@ -290,24 +327,19 @@ async function createCard(item, mediaType) {
         
         imageContainer.appendChild(img);
         
-        // Adiciona o botão de trailer
-        const trailerButton = document.createElement("button");
-        trailerButton.classList.add("trailer-button");
-        trailerButton.textContent = "▶ Trailer";
-        trailerButton.onclick = async () => {
-            try {
-                const videos = await fetch(`${BASE_URL}/${mediaType}/${item.id}/videos?api_key=${API_KEY}&language=pt-BR`)
-                    .then(res => res.json());
-                const trailer = videos.results.find(v => v.type === "Trailer") || videos.results[0];
-                if (trailer) {
-                    window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank');
-                }
-            } catch (error) {
-                console.error("Erro ao buscar trailer:", error);
-            }
-        };
-        imageContainer.appendChild(trailerButton);
-        
+        // Busca e adiciona o trailer
+        const trailerKey = await fetchTrailer(mediaType, item.id);
+        if (trailerKey) {
+            const trailerButton = document.createElement("button");
+            trailerButton.classList.add("trailer-button");
+            trailerButton.innerHTML = '<i class="fas fa-play"></i> Trailer';
+            trailerButton.onclick = (e) => {
+                e.preventDefault();
+                window.open(`https://www.youtube.com/watch?v=${trailerKey}`, '_blank');
+            };
+            imageContainer.appendChild(trailerButton);
+        }
+
         const info = document.createElement("div");
         info.classList.add("movie-info");
         
