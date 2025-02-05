@@ -5,22 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Filmes e Séries</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="description" content="Descubra filmes e séries populares, com informações sobre streaming e trailers">
+    <link rel="preconnect" href="https://api.themoviedb.org">
+    <link rel="preconnect" href="https://image.tmdb.org">
 </head>
 <body>
-    <h1>Filmes e Séries</h1>
-    <div class="filter-buttons">
-        <button id="filter-all">Todos</button>
-        <button id="filter-movies">Filmes</button>
-        <button id="filter-series">Séries</button>
+    <div class="container">
+        <div class="header">
+            <h1>Filmes e Séries
+                <button class="theme-toggle" aria-label="Alternar tema escuro">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </h1>
+            <div class="filter-buttons">
+                <button id="filter-all" class="active">Todos</button>
+                <button id="filter-movie">Filmes</button>
+                <button id="filter-tv">Séries</button>
+            </div>
+            <div class="sort-buttons">
+                <button id="sort-rating" class="active">Melhor Avaliados</button>
+                <button id="sort-popularity">Mais Populares</button>
+                <button id="sort-date">Mais Recentes</button>
+                <button id="sort-upcoming"><i class="fas fa-calendar-alt"></i> Lançamentos Futuros</button>
+            </div>
+        </div>
+        
+        <div id="movies-series" class="movies-series-grid">
+            <!-- Skeleton loading -->
+            <div class="movie-series skeleton">
+                <div class="movie-info">
+                    <h2>&nbsp;</h2>
+                    <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+            <div class="movie-series skeleton">
+                <div class="movie-info">
+                    <h2>&nbsp;</h2>
+                    <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+            <div class="movie-series skeleton">
+                <div class="movie-info">
+                    <h2>&nbsp;</h2>
+                    <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+            <div class="movie-series skeleton">
+                <div class="movie-info">
+                    <h2>&nbsp;</h2>
+                    <p>&nbsp;</p>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="spinner" class="spinner" style="display: none;">
+            <div class="loading"></div>
+        </div>
+        
+        <div class="button-container">
+            <button id="load-more">Carregar Mais</button>
+            <button id="back-to-top">Voltar ao Início</button>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 - Marcelo Ribeiro</p>
+        </footer>
+
+        <script src="script.js"></script>
     </div>
-    <main id="movies-series"></main>
-    <div class="button-container">
-        <button id="load-more">Carregar Mais</button>
-        <button id="back-to-top">Voltar ao Início</button>
-    </div>
-    <footer>
-        <p>&copy; 2024 - Marcelo Ribeiro</p>
-    </footer>
-    <script src="script.js"></script>
 </body>
 </html>
