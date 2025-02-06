@@ -33,17 +33,18 @@ body {
     position: sticky;
     top: 0;
     background-color: var(--bg-color);
-    padding: 1rem;
+    padding: 0.5rem;
     z-index: 100;
     width: 100%;
 }
 
 .header h1 {
     margin: 0;
-    padding: 20px;
+    padding: 10px;
     background-color: var(--primary-color);
     color: white;
     text-align: center;
+    font-size: 1.5rem;
 }
 
 .theme-toggle {
@@ -457,40 +458,58 @@ body {
 
 @media (max-width: 768px) {
     .header {
-        padding: 0.5rem;
+        padding: 0.25rem;
     }
 
     .header h1 {
-        font-size: 1.5rem;
-        margin: 0.5rem 0;
+        font-size: 1.2rem;
+        padding: 8px;
+        margin-bottom: 0.5rem;
     }
 
-    .filter-buttons,
+    .filter-buttons, 
     .sort-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin: 0.5rem 0;
+        padding: 5px;
+        gap: 5px;
+        margin: 5px 0;
     }
 
     .filter-buttons button,
     .sort-buttons button {
-        padding: 0.5rem;
-        font-size: 0.9rem;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
     }
 
     .movies-series-grid {
-        padding-top: 1rem;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 1rem;
+        gap: 10px;
+    }
+
+    .sort-buttons {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+        padding-bottom: 5px;
+    }
+
+    .sort-buttons::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
     }
 
     .container {
-        padding: 0.5rem;
+        padding: 0.25rem;
     }
 
     .movie-info h2 {
-        font-size: 1em;
+        font-size: 0.9rem;
+    }
+
+    .movie-info p {
+        font-size: 0.8rem;
     }
 
     .genre-tag {
@@ -527,31 +546,49 @@ body {
 }
 
 @media (max-width: 480px) {
-    .header {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
+    .header h1 {
+        font-size: 1.1rem;
+        padding: 6px;
     }
 
-    .filter-buttons, .sort-buttons {
-        position: relative;
-        top: 0;
-        flex-direction: column;
-        align-items: stretch;
-        padding: 5px 10px;
-        margin: 5px 0;
-        gap: 5px;
+    .filter-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
     }
 
-    button {
+    .filter-buttons button {
         width: 100%;
-        margin: 2px 0;
-        padding: 12px;
-        font-size: 0.9em;
+        padding: 6px;
+        font-size: 0.75rem;
+    }
+
+    .sort-buttons {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 5px 0;
+    }
+
+    .sort-buttons button {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        font-size: 0.75rem;
     }
 
     .movies-series-grid {
-        padding-top: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        padding: 0.25rem;
+        gap: 8px;
+    }
+
+    .movie-info h2 {
+        font-size: 0.9rem;
+    }
+
+    .movie-info p {
+        font-size: 0.8rem;
     }
 }
 
@@ -585,8 +622,15 @@ body {
 }
 
 /* Ajuste específico para telas muito pequenas */
-@media screen and (max-width: 380px) {
+@media screen and (max-width: 360px) {
     .movies-series-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .filter-buttons button,
+    .sort-buttons button {
+        font-size: 0.7rem;
+        padding: 4px 8px;
     }
 }
