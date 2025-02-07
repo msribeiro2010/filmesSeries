@@ -636,4 +636,32 @@ document.addEventListener('DOMContentLoaded', function() {
             body.style.overflow = '';
         });
     });
+
+    // Função para alternar o tema
+    function toggleTheme() {
+        const body = document.documentElement; // usando documentElement para aplicar no :root
+        const currentTheme = body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        body.setAttribute('data-theme', newTheme);
+        
+        // Salva a preferência do usuário
+        localStorage.setItem('theme', newTheme);
+        
+        // Atualiza o ícone
+        const themeIcon = document.querySelector('.theme-toggle i');
+        themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    // Configura o evento de clique no botão de tema
+    const themeToggle = document.querySelector('.theme-toggle');
+    themeToggle.addEventListener('click', toggleTheme);
+
+    // Verifica se há uma preferência salva
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const themeIcon = document.querySelector('.theme-toggle i');
+        themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
 });

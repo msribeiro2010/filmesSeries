@@ -6,15 +6,19 @@
     --bg-color: #f0f0f0;
     --card-bg: #fff;
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --movie-bg: #ffffff;
+    --header-text: #ffffff;
 }
 
 [data-theme="dark"] {
     --primary-color: #5438ff;
     --secondary-color: #4024e0;
-    --text-color: #f0f0f0;
+    --text-color: #ffffff;
     --bg-color: #1a1a1a;
     --card-bg: #2d2d2d;
     --shadow-color: rgba(255, 255, 255, 0.1);
+    --movie-bg: #2d2d2d;
+    --header-text: #ffffff;
 }
 
 body {
@@ -33,37 +37,35 @@ body {
     position: sticky;
     top: 0;
     background-color: var(--bg-color);
-    padding: 0.5rem;
+    padding: 0.25rem;
     z-index: 100;
     width: 100%;
 }
 
 .header h1 {
     margin: 0;
-    padding: 10px;
-    background-color: var(--primary-color);
-    color: white;
-    text-align: center;
-    font-size: 1.5rem;
+    padding: 8px;
+    font-size: 1.3rem;
 }
 
 .theme-toggle {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 12px;
+    right: 55px;
     z-index: 1001;
     background: none;
     border: none;
-    color: white;
-    font-size: 24px;
+    color: var(--header-text);
+    font-size: 20px;
     cursor: pointer;
-    padding: 8px;
+    padding: 6px;
     border-radius: 50%;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .theme-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
 }
 
 .filter-buttons, .sort-buttons {
@@ -106,7 +108,7 @@ body {
 }
 
 .movie-series {
-    background: #1a1a1a;
+    background: var(--movie-bg);
     border-radius: 8px;
     overflow: hidden;
     transition: transform 0.3s ease;
@@ -173,19 +175,19 @@ body {
 
 .movie-info {
     padding: 15px;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--movie-bg);
 }
 
 .movie-info h2 {
     margin: 0 0 8px 0;
     font-size: 1.1em;
-    color: #ffffff;
+    color: var(--text-color);
 }
 
 .movie-info p {
     margin: 5px 0;
     font-size: 0.9em;
-    color: #cccccc;
+    color: var(--text-color);
 }
 
 .movie-info .rating {
@@ -483,9 +485,9 @@ body {
 
     .movies-series-grid {
         padding: 0.5rem;
-        margin-top: 0.5rem;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 10px;
+        margin-top: 60px; /* Espaço para o header fixo */
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
     }
 
     .sort-buttons {
@@ -504,12 +506,23 @@ body {
         padding: 0.25rem;
     }
 
+    .movie-series {
+        border-radius: 6px;
+    }
+
+    .movie-info {
+        padding: 10px;
+    }
+
     .movie-info h2 {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        line-height: 1.2;
+        margin-bottom: 4px;
     }
 
     .movie-info p {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        margin: 3px 0;
     }
 
     .genre-tag {
@@ -542,6 +555,18 @@ body {
 
     .image-container::after {
         opacity: 1;
+    }
+
+    .nav-content {
+        padding-top: 60px; /* Ajuste para não sobrepor o header */
+    }
+
+    .filter-submenu {
+        background-color: var(--bg-color);
+    }
+
+    .submenu-section h3 {
+        color: var(--text-color);
     }
 }
 
@@ -654,8 +679,8 @@ body {
     cursor: pointer;
     padding: 10px;
     position: absolute;
-    right: 20px;
-    top: 20px;
+    right: 15px;
+    top: 12px;
     z-index: 1002;
     background: none;
     border: none;
@@ -666,7 +691,7 @@ body {
     width: 25px;
     height: 3px;
     margin: 5px 0;
-    background-color: var(--text-color);
+    background-color: var(--header-text);
     transition: all 0.3s ease;
     border-radius: 3px;
 }
@@ -712,7 +737,7 @@ body {
 
     .filter-submenu {
         margin: 0;
-        background-color: transparent;
+        background-color: var(--bg-color);
         padding: 0;
     }
 
@@ -751,8 +776,8 @@ body {
 
     /* Ajuste para o botão de tema no mobile */
     .theme-toggle {
-        top: 15px;
-        right: 60px;
+        top: 12px;
+        right: 55px;
     }
 }
 
@@ -860,7 +885,7 @@ body {
 
     .filter-submenu {
         margin: 0;
-        background-color: transparent;
+        background-color: var(--bg-color);
         padding: 0;
     }
 
@@ -899,8 +924,8 @@ body {
 
     /* Ajuste para o botão de tema no mobile */
     .theme-toggle {
-        top: 15px;
-        right: 60px;
+        top: 12px;
+        right: 55px;
     }
 }
 
@@ -918,5 +943,60 @@ body {
 
     .submenu-section h3 {
         font-size: 0.8rem;
+    }
+}
+
+/* Ajustes específicos para iPhone e dispositivos modernos */
+@media screen and (min-width: 390px) and (max-width: 430px) {
+    .header {
+        padding: 0.15rem;
+    }
+
+    .header h1 {
+        font-size: 1.2rem;
+        padding: 6px;
+    }
+
+    .movies-series-grid {
+        margin-top: 55px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding: 0.5rem;
+    }
+
+    .movie-series {
+        min-width: 0; /* Permite que os cards encolham se necessário */
+    }
+
+    .filter-buttons button,
+    .sort-buttons button {
+        font-size: 0.8rem;
+        padding: 8px 12px;
+    }
+
+    .nav-content {
+        width: 90%;
+    }
+
+    /* Ajuste para o menu lateral */
+    .nav-content.active {
+        padding-top: 70px;
+    }
+
+    /* Melhor visualização dos cards */
+    .image-container {
+        padding-bottom: 140%; /* Ajuste na proporção para melhor visualização */
+    }
+}
+
+/* Ajustes para dispositivos em modo paisagem */
+@media screen and (max-height: 450px) and (orientation: landscape) {
+    .movies-series-grid {
+        margin-top: 50px;
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .nav-content {
+        padding-top: 50px;
     }
 }
