@@ -31,6 +31,9 @@ async function init() {
 
         // Configura os event listeners
         setupEventListeners();
+        
+        // Inicializa o tema
+        initializeTheme();
 
         // Carrega os itens iniciais
         await fetchItems();
@@ -659,63 +662,22 @@ function formatDate(date) {
     return date.toISOString().split('T')[0];
 }
 
-// Inicializa quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', init);
-
-document.addEventListener('DOMContentLoaded', function() {
-    const hamburger = document.querySelector('.hamburger');
-    const navContent = document.querySelector('.nav-content');
-    const body = document.body;
-
-    // Criar overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'nav-overlay';
-    body.appendChild(overlay);
-
-    hamburger.addEventListener('click', function() {
-        hamburger.classList.toggle('active');
-        navContent.classList.toggle('active');
-        overlay.classList.toggle('active');
-        body.style.overflow = body.style.overflow === 'hidden' ? '' : 'hidden';
-    });
-
-    // Fechar menu ao clicar no overlay
-    overlay.addEventListener('click', function() {
-        hamburger.classList.remove('active');
-        navContent.classList.remove('active');
-        overlay.classList.remove('active');
-        body.style.overflow = '';
-    });
-
-    // Fechar menu ao clicar em um botão
-    const navButtons = navContent.querySelectorAll('button');
-    navButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            hamburger.classList.remove('active');
-            navContent.classList.remove('active');
-            overlay.classList.remove('active');
-            body.style.overflow = '';
-        });
-    });
-
-    // Função para alternar o tema
+// Adicione esta nova função para inicializar o tema
+function initializeTheme() {
+    const themeToggle = document.querySelector('.theme-toggle');
+    
     function toggleTheme() {
-        const body = document.documentElement; // usando documentElement para aplicar no :root
+        const body = document.documentElement;
         const currentTheme = body.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         body.setAttribute('data-theme', newTheme);
-        
-        // Salva a preferência do usuário
         localStorage.setItem('theme', newTheme);
         
-        // Atualiza o ícone
         const themeIcon = document.querySelector('.theme-toggle i');
         themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
-    // Configura o evento de clique no botão de tema
-    const themeToggle = document.querySelector('.theme-toggle');
     themeToggle.addEventListener('click', toggleTheme);
 
     // Verifica se há uma preferência salva
@@ -725,4 +687,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const themeIcon = document.querySelector('.theme-toggle i');
         themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
-});
+}
+
+// Inicializa quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', init);
