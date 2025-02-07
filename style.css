@@ -575,15 +575,17 @@ body {
         right: -100%;
         width: 85%;
         max-width: 300px;
-        height: 100vh;
+        height: 100%;
+        height: 100dvh; /* Usar dvh para melhor suporte mobile */
         background-color: var(--bg-color);
         padding: 70px 15px 20px;
         transition: right 0.3s ease;
         box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* Suavizar rolagem no iOS */
         z-index: 1001;
-        /* Garantir contraste no modo claro */
         border-left: 1px solid var(--shadow-color);
+        overscroll-behavior: contain; /* Prevenir scroll bounce */
     }
 
     [data-theme="light"] .nav-content {
@@ -596,10 +598,19 @@ body {
 
     .filter-buttons button,
     .sort-buttons button {
-        /* Garantir contraste no modo claro */
+        width: 100%;
+        text-align: left;
+        padding: 12px;
+        font-size: 0.9rem;
+        border-radius: 8px;
         border: 1px solid var(--shadow-color);
         background-color: var(--card-bg);
         color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 2px 0;
+        transition: all 0.2s ease;
     }
 
     .filter-buttons button.active,
@@ -609,30 +620,86 @@ body {
         border: none;
     }
 
-    /* Ajuste do hamburger para ter contraste em ambos os modos */
-    .hamburger span {
-        background-color: var(--text-color);
+    .theme-toggle {
+        position: fixed;
+        top: 12px;
+        right: 55px;
+        z-index: 1002;
     }
 
-    /* Ajuste do overlay para ter contraste adequado em ambos os modos */
-    .nav-overlay {
-        background-color: rgba(0, 0, 0, 0.5);
-    }
+    /* Ajustes específicos para iPhone */
+    @supports (-webkit-touch-callout: none) {
+        .nav-content {
+            padding-top: max(70px, env(safe-area-inset-top));
+            height: -webkit-fill-available;
+        }
 
-    /* Ajuste para os títulos das seções do menu */
-    .submenu-section h3 {
-        color: var(--text-color);
-        border-bottom: 1px solid var(--shadow-color);
-        margin-bottom: 10px;
-        padding-bottom: 8px;
+        .theme-toggle {
+            top: max(12px, env(safe-area-inset-top));
+        }
+
+        .hamburger {
+            top: max(12px, env(safe-area-inset-top));
+        }
     }
 
     .hamburger {
         display: block;
     }
 
+    .hamburger span {
+        display: block;
+        width: 25px;
+        height: 3px;
+        margin: 5px 0;
+        background-color: var(--text-color);
+        transition: all 0.3s ease;
+        border-radius: 3px;
+    }
+
+    /* Animação do hambúrguer quando ativo */
+    .hamburger.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    .hamburger.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .hamburger.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(7px, -7px);
+    }
+
     .nav-content.active {
         right: 0;
+    }
+
+    /* Estrutura do menu */
+    .filter-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .filter-buttons,
+    .sort-buttons {
+        flex-direction: column;
+        width: 100%;
+        padding: 0;
+        gap: 5px;
+    }
+
+    .filter-submenu {
+        margin: 0;
+        padding: 10px 0;
+    }
+
+    .submenu-section h3 {
+        color: var(--text-color);
+        font-size: 0.9rem;
+        margin: 0 0 10px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--shadow-color);
     }
 }
 
@@ -744,7 +811,7 @@ body {
     display: none;
     cursor: pointer;
     padding: 10px;
-    position: absolute;
+    position: fixed;
     right: 15px;
     top: 12px;
     z-index: 1002;
@@ -757,7 +824,7 @@ body {
     width: 25px;
     height: 3px;
     margin: 5px 0;
-    background-color: var(--header-text);
+    background-color: var(--text-color);
     transition: all 0.3s ease;
     border-radius: 3px;
 }
@@ -771,308 +838,8 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-}
-
-.nav-overlay.active {
-    display: block;
-}
-
-/* Estilos da Navbar e Filtros */
-.navbar {
-    width: 100%;
-    background-color: var(--bg-color);
-    transition: all 0.3s ease;
-}
-
-.nav-content {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.filter-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.filter-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px;
-}
-
-.filter-submenu {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0 10px;
-}
-
-.submenu-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.submenu-section h3 {
-    color: var(--text-color);
-    font-size: 0.9rem;
-    margin: 0;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--shadow-color);
-}
-
-/* Ajustes para telas muito pequenas */
-@media screen and (max-width: 360px) {
-    .nav-content {
-        padding: 60px 10px 20px;
-    }
-
-    .filter-buttons button,
-    .sort-buttons button {
-        padding: 10px;
-        font-size: 0.85rem;
-    }
-
-    .submenu-section h3 {
-        font-size: 0.8rem;
-    }
-}
-
-/* Ajustes específicos para iPhone e dispositivos modernos */
-@media screen and (min-width: 390px) and (max-width: 430px) {
-    .header {
-        padding: 0.15rem;
-    }
-
-    .header h1 {
-        font-size: 1.2rem;
-        padding: 6px;
-    }
-
-    .movies-series-grid {
-        margin-top: 55px;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        padding: 0.5rem;
-    }
-
-    .movie-series {
-        min-width: 0; /* Permite que os cards encolham se necessário */
-    }
-
-    .filter-buttons button,
-    .sort-buttons button {
-        font-size: 0.8rem;
-        padding: 8px 12px;
-    }
-
-    .nav-content {
-        width: 90%;
-    }
-
-    /* Ajuste para o menu lateral */
-    .nav-content.active {
-        padding-top: 70px;
-    }
-
-    /* Melhor visualização dos cards */
-    .image-container {
-        padding-bottom: 140%; /* Ajuste na proporção para melhor visualização */
-    }
-
-    .filter-buttons button,
-    .sort-buttons button {
-        font-size: 0.85rem;
-        padding: 10px;
-    }
-
-    /* Garantir que o menu fique visível quando ativo */
-    .nav-content.active {
-        right: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* Ajuste para o menu hambúrguer */
-    .hamburger {
-        display: block;
-        visibility: visible;
-        opacity: 1;
-    }
-}
-
-/* Ajustes para dispositivos em modo paisagem */
-@media screen and (max-height: 450px) and (orientation: landscape) {
-    .movies-series-grid {
-        margin-top: 50px;
-        grid-template-columns: repeat(4, 1fr);
-    }
-
-    .nav-content {
-        padding-top: 50px;
-    }
-}
-
-/* Ajustes específicos para iPhone e dispositivos modernos */
-@media screen and (min-width: 390px) and (max-width: 430px) {
-    .nav-content {
-        width: 90%;
-    }
-
-    .filter-buttons button,
-    .sort-buttons button {
-        font-size: 0.85rem;
-        padding: 10px;
-    }
-
-    /* Garantir que o menu fique visível quando ativo */
-    .nav-content.active {
-        right: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* Ajuste para o menu hambúrguer */
-    .hamburger {
-        display: block;
-        visibility: visible;
-        opacity: 1;
-    }
-}
-
-/* Ajustes gerais do menu hambúrguer */
-.hamburger {
-    display: none;
-    cursor: pointer;
-    padding: 10px;
-    position: absolute;
-    right: 15px;
-    top: 12px;
-    z-index: 1002;
-    background: none;
-    border: none;
-}
-
-/* Media Query para dispositivos móveis */
-@media (max-width: 768px) {
-    .hamburger {
-        display: block;
-    }
-
-    .nav-content {
-        position: fixed;
-        top: 0;
-        right: -100%;
-        width: 85%;
-        max-width: 300px;
-        height: 100vh;
-        background-color: var(--bg-color);
-        padding: 70px 15px 20px;
-        transition: right 0.3s ease;
-        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
-        overflow-y: auto;
-        z-index: 1001;
-        border-left: 1px solid var(--shadow-color);
-    }
-
-    .nav-content.active {
-        right: 0;
-    }
-
-    [data-theme="light"] .nav-content {
-        background-color: #ffffff;
-    }
-
-    [data-theme="dark"] .nav-content {
-        background-color: #1a1a1a;
-    }
-
-    .filter-buttons {
-        flex-direction: column;
-        width: 100%;
-        padding: 0;
-        gap: 5px;
-    }
-
-    .filter-buttons button,
-    .sort-buttons button {
-        width: 100%;
-        text-align: left;
-        padding: 12px;
-        font-size: 0.9rem;
-        border-radius: 8px;
-        border: 1px solid var(--shadow-color);
-        background-color: var(--card-bg);
-        color: var(--text-color);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .filter-buttons button.active,
-    .sort-buttons button.active {
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-    }
-
-    .sort-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        width: 100%;
-    }
-
-    .sort-buttons button i {
-        width: 20px;
-        text-align: center;
-    }
-
-    /* Ajuste do hamburger para ter contraste em ambos os modos */
-    .hamburger span {
-        background-color: var(--text-color);
-    }
-
-    /* Ajuste para o botão de tema no mobile */
-    .theme-toggle {
-        position: fixed;
-        top: 12px;
-        right: 55px;
-        z-index: 1002;
-    }
-
-    /* Ajustes específicos para iPhone */
-    @supports (-webkit-touch-callout: none) {
-        .nav-content {
-            padding-top: max(70px, env(safe-area-inset-top));
-            height: 100%;
-            height: -webkit-fill-available;
-        }
-
-        .theme-toggle {
-            top: max(12px, env(safe-area-inset-top));
-        }
-
-        .hamburger {
-            top: max(12px, env(safe-area-inset-top));
-        }
-    }
-}
-
-/* Overlay para quando o menu estiver aberto */
-.nav-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
+    backdrop-filter: blur(2px);
 }
 
 .nav-overlay.active {
