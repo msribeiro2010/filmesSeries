@@ -45,17 +45,31 @@ async function init() {
 function setupEventListeners() {
     // Filtros
     document.querySelectorAll('.filter-buttons button').forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
             const filter = button.id.replace('filter-', '');
             setFilter(filter);
+            
+            // Atualiza visualmente todos os botões de filtro
+            document.querySelectorAll('.filter-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
         });
     });
 
     // Ordenação
     document.querySelectorAll('.sort-buttons button').forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
             const sort = button.id.replace('sort-', '');
             setSort(sort);
+            
+            // Atualiza visualmente todos os botões de ordenação
+            document.querySelectorAll('.sort-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
         });
     });
 
@@ -64,6 +78,43 @@ function setupEventListeners() {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000 && !loading) {
             fetchItems();
         }
+    });
+
+    // Menu móvel
+    const hamburger = document.querySelector('.hamburger');
+    const navContent = document.querySelector('.nav-content');
+    const body = document.body;
+    const overlay = document.querySelector('.nav-overlay') || createOverlay();
+
+    function createOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'nav-overlay';
+        body.appendChild(overlay);
+        return overlay;
+    }
+
+    function closeMenu() {
+        hamburger.classList.remove('active');
+        navContent.classList.remove('active');
+        overlay.classList.remove('active');
+        body.style.overflow = '';
+    }
+
+    hamburger.addEventListener('click', function(e) {
+        e.preventDefault();
+        hamburger.classList.toggle('active');
+        navContent.classList.toggle('active');
+        overlay.classList.toggle('active');
+        body.style.overflow = body.style.overflow === 'hidden' ? '' : 'hidden';
+    });
+
+    overlay.addEventListener('click', closeMenu);
+
+    // Fechar menu ao clicar em um botão, mas manter a funcionalidade do filtro/ordenação
+    navContent.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+            closeMenu();
+        });
     });
 }
 
@@ -524,13 +575,21 @@ function setFilter(filter) {
     currentPage = 1;
     allItems = [];
     
-    // Remove a classe active de todos os botões
+    // Atualiza visualmente os botões
     document.querySelectorAll(".filter-buttons button").forEach(btn => {
-      btn.classList.remove("active");
+        btn.classList.remove("active");
     });
     
-    // Adiciona a classe active ao botão selecionado
-    document.getElementById(`filter-${filter}`).classList.add("active");
+    const activeButton = document.getElementById(`filter-${filter}`);
+    if (activeButton) {
+        activeButton.classList.add("active");
+    }
+    
+    // Limpa o container antes de buscar novos itens
+    const mainContainer = document.getElementById("movies-series");
+    if (mainContainer) {
+        mainContainer.innerHTML = "";
+    }
     
     fetchItems();
 }
@@ -540,13 +599,15 @@ function setSort(sort) {
     currentSort = sort;
     currentPage = 1;
     
-    // Remove a classe active de todos os botões
+    // Atualiza visualmente os botões
     document.querySelectorAll('.sort-buttons button').forEach(button => {
         button.classList.remove("active");
     });
     
-    // Adiciona a classe active ao botão selecionado
-    document.getElementById(`sort-${sort}`).classList.add("active");
+    const activeButton = document.getElementById(`sort-${sort}`);
+    if (activeButton) {
+        activeButton.classList.add("active");
+    }
     
     // Limpa o container e recarrega os itens
     const mainContainer = document.getElementById("movies-series");
