@@ -600,3 +600,40 @@ function formatDate(date) {
 
 // Inicializa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', init);
+
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburger = document.querySelector('.hamburger');
+    const navContent = document.querySelector('.nav-content');
+    const body = document.body;
+
+    // Criar overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'nav-overlay';
+    body.appendChild(overlay);
+
+    hamburger.addEventListener('click', function() {
+        hamburger.classList.toggle('active');
+        navContent.classList.toggle('active');
+        overlay.classList.toggle('active');
+        body.style.overflow = body.style.overflow === 'hidden' ? '' : 'hidden';
+    });
+
+    // Fechar menu ao clicar no overlay
+    overlay.addEventListener('click', function() {
+        hamburger.classList.remove('active');
+        navContent.classList.remove('active');
+        overlay.classList.remove('active');
+        body.style.overflow = '';
+    });
+
+    // Fechar menu ao clicar em um botão
+    const navButtons = navContent.querySelectorAll('button');
+    navButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            hamburger.classList.remove('active');
+            navContent.classList.remove('active');
+            overlay.classList.remove('active');
+            body.style.overflow = '';
+        });
+    });
+});
