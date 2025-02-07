@@ -460,7 +460,10 @@ body {
 
 @media (max-width: 768px) {
     .header {
-        padding: 0.25rem;
+        position: sticky;
+        top: 0;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) 0.25rem env(safe-area-inset-left);
+        z-index: 100;
     }
 
     .header h1 {
@@ -558,50 +561,34 @@ body {
     }
 
     .nav-content {
-        padding-top: 60px; /* Ajuste para não sobrepor o header */
-    }
-
-    .filter-submenu {
-        background-color: var(--bg-color);
-    }
-
-    .submenu-section h3 {
-        color: var(--text-color);
-    }
-
-    .nav-content {
         position: fixed;
         top: 0;
         right: -100%;
         width: 85%;
         max-width: 300px;
         height: 100%;
-        height: 100dvh; /* Usar dvh para melhor suporte mobile */
+        min-height: -webkit-fill-available;
         background-color: var(--bg-color);
-        padding: 70px 15px 20px;
+        padding: calc(env(safe-area-inset-top) + 60px) 15px calc(env(safe-area-inset-bottom) + 20px);
         transition: right 0.3s ease;
         box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
         overflow-y: auto;
-        -webkit-overflow-scrolling: touch; /* Suavizar rolagem no iOS */
+        -webkit-overflow-scrolling: touch;
         z-index: 1001;
         border-left: 1px solid var(--shadow-color);
-        overscroll-behavior: contain; /* Prevenir scroll bounce */
     }
 
-    [data-theme="light"] .nav-content {
-        background-color: #ffffff;
-    }
-
-    [data-theme="dark"] .nav-content {
-        background-color: #1a1a1a;
+    .nav-content.active {
+        right: 0;
+        padding-right: max(15px, env(safe-area-inset-right));
     }
 
     .filter-buttons button,
     .sort-buttons button {
         width: 100%;
         text-align: left;
-        padding: 12px;
-        font-size: 0.9rem;
+        padding: 12px 16px;
+        font-size: 0.95rem;
         border-radius: 8px;
         border: 1px solid var(--shadow-color);
         background-color: var(--card-bg);
@@ -609,7 +596,7 @@ body {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin: 2px 0;
+        margin: 4px 0;
         transition: all 0.2s ease;
     }
 
@@ -622,42 +609,38 @@ body {
 
     .theme-toggle {
         position: fixed;
-        top: 12px;
-        right: 55px;
+        right: max(70px, calc(env(safe-area-inset-right) + 55px));
+        top: max(12px, env(safe-area-inset-top));
         z-index: 1002;
-    }
-
-    /* Ajustes específicos para iPhone */
-    @supports (-webkit-touch-callout: none) {
-        .nav-content {
-            padding-top: max(70px, env(safe-area-inset-top));
-            height: -webkit-fill-available;
-        }
-
-        .theme-toggle {
-            top: max(12px, env(safe-area-inset-top));
-        }
-
-        .hamburger {
-            top: max(12px, env(safe-area-inset-top));
-        }
+        background: var(--bg-color);
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--shadow-color);
     }
 
     .hamburger {
         display: block;
+        position: fixed;
+        right: max(15px, env(safe-area-inset-right));
+        top: max(12px, env(safe-area-inset-top));
+        z-index: 1002;
+        padding: 10px;
+        width: 45px;
+        height: 45px;
+        background: var(--bg-color);
+        border-radius: 8px;
+        border: 1px solid var(--shadow-color);
     }
 
     .hamburger span {
         display: block;
-        width: 25px;
-        height: 3px;
-        margin: 5px 0;
+        width: 24px;
+        height: 2px;
+        margin: 5px auto;
         background-color: var(--text-color);
         transition: all 0.3s ease;
-        border-radius: 3px;
     }
 
-    /* Animação do hambúrguer quando ativo */
     .hamburger.active span:nth-child(1) {
         transform: rotate(45deg) translate(5px, 5px);
     }
@@ -670,36 +653,72 @@ body {
         transform: rotate(-45deg) translate(7px, -7px);
     }
 
+    .nav-content {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 85%;
+        max-width: 300px;
+        height: 100%;
+        min-height: -webkit-fill-available;
+        background-color: var(--bg-color);
+        padding: calc(env(safe-area-inset-top) + 60px) 15px calc(env(safe-area-inset-bottom) + 20px);
+        transition: right 0.3s ease;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        z-index: 1001;
+        border-left: 1px solid var(--shadow-color);
+    }
+
     .nav-content.active {
         right: 0;
+        padding-right: max(15px, env(safe-area-inset-right));
     }
 
-    /* Estrutura do menu */
-    .filter-section {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .filter-buttons,
-    .sort-buttons {
-        flex-direction: column;
+    .filter-buttons button,
+    .sort-buttons button {
         width: 100%;
-        padding: 0;
-        gap: 5px;
-    }
-
-    .filter-submenu {
-        margin: 0;
-        padding: 10px 0;
-    }
-
-    .submenu-section h3 {
+        text-align: left;
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        border-radius: 8px;
+        border: 1px solid var(--shadow-color);
+        background-color: var(--card-bg);
         color: var(--text-color);
-        font-size: 0.9rem;
-        margin: 0 0 10px 0;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--shadow-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+        transition: all 0.2s ease;
+    }
+
+    .filter-buttons button.active,
+    .sort-buttons button.active {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+    }
+
+    .hamburger span {
+        display: block;
+        width: 24px;
+        height: 2px;
+        margin: 5px auto;
+        background-color: var(--text-color);
+        transition: all 0.3s ease;
+    }
+
+    .hamburger.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    .hamburger.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .hamburger.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(7px, -7px);
     }
 }
 
@@ -844,4 +863,39 @@ body {
 
 .nav-overlay.active {
     display: block;
+}
+
+/* Ajustes específicos para iPhone moderno */
+@media screen and (min-width: 390px) and (max-width: 430px) {
+    .nav-content {
+        width: 90%;
+        max-width: 380px;
+    }
+
+    .filter-buttons button,
+    .sort-buttons button {
+        font-size: 1rem;
+        padding: 14px 16px;
+    }
+
+    .submenu-section h3 {
+        font-size: 1rem;
+        padding: 10px 0;
+        margin-bottom: 12px;
+    }
+}
+
+/* Ajustes para notch e dynamic island */
+@supports (padding-top: env(safe-area-inset-top)) {
+    .header {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .nav-content {
+        padding-top: calc(env(safe-area-inset-top) + 60px);
+        padding-right: max(15px, env(safe-area-inset-right));
+        padding-bottom: env(safe-area-inset-bottom);
+        height: 100vh;
+        height: -webkit-fill-available;
+    }
 }
