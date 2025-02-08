@@ -184,16 +184,20 @@ async function fetchItems() {
         }
 
         let newItems = [];
-        const currentDate = new Date().toISOString().split('T')[0];
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
         
         // Se for lançamentos futuros, usa uma lógica diferente
         if (currentSort === 'upcoming') {
             if (currentPage === 1) {
                 newItems = await fetchUpcoming();
-                newItems = newItems.map(item => ({
+                newItems = newItems.filter(item => {
+                    const itemDate = new Date(item.release_date || item.first_air_date);
+                    return itemDate.getFullYear() >= 2024;
+                }).map(item => ({
                     ...item,
                     daysUntilRelease: Math.ceil(
-                        (new Date(item.release_date || item.first_air_date) - new Date()) / 
+                        (new Date(item.release_date || item.first_air_date) - currentDate) / 
                         (1000 * 60 * 60 * 24)
                     )
                 }));
@@ -209,16 +213,16 @@ async function fetchItems() {
                 page: currentPage
             });
 
+            // Adiciona filtro de data para mostrar apenas de 2024 em diante
+            baseParams.append('primary_release_date.gte', '2024-01-01');
+            baseParams.append('first_air_date.gte', '2024-01-01');
+
             if (currentSort === 'date') {
-                // Para "Mais Recentes", ordena por data
                 baseParams.append('sort_by', 'primary_release_date.desc,first_air_date.desc');
             } else if (currentSort === 'rating') {
-                // Para "Melhor Avaliados"
                 baseParams.append('sort_by', 'vote_average.desc');
                 baseParams.append('vote_average.gte', '6');
-                baseParams.append('vote_count.gte', '50');
             } else if (currentSort === 'popularity') {
-                // Para "Mais Populares"
                 baseParams.append('sort_by', 'popularity.desc');
             }
             
@@ -229,7 +233,12 @@ async function fetchItems() {
                 requests.push(
                     fetch(movieUrl)
                         .then(res => res.json())
-                        .then(data => data.results.map(item => ({ ...item, media_type: 'movie' })))
+                        .then(data => data.results
+                            .filter(item => {
+                                const releaseDate = new Date(item.release_date);
+                                return releaseDate.getFullYear() >= 2024;
+                            })
+                            .map(item => ({ ...item, media_type: 'movie' })))
                 );
             }
             
@@ -240,7 +249,12 @@ async function fetchItems() {
                 requests.push(
                     fetch(tvUrl)
                         .then(res => res.json())
-                        .then(data => data.results.map(item => ({ ...item, media_type: 'tv' })))
+                        .then(data => data.results
+                            .filter(item => {
+                                const firstAirDate = new Date(item.first_air_date);
+                                return firstAirDate.getFullYear() >= 2024;
+                            })
+                            .map(item => ({ ...item, media_type: 'tv' })))
                 );
             }
 
