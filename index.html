@@ -29,9 +29,18 @@
                 <div class="nav-content">
                     <div class="filter-section">
                         <div class="filter-buttons">
-                            <button id="filter-all" class="active">Todos</button>
-                            <button id="filter-movie">Filmes</button>
-                            <button id="filter-tv">Séries</button>
+                            <button id="filter-all" class="active">
+                                <i class="fas fa-border-all"></i>
+                                Todos
+                            </button>
+                            <button id="filter-movie">
+                                <i class="fas fa-film"></i>
+                                Filmes
+                            </button>
+                            <button id="filter-tv">
+                                <i class="fas fa-tv"></i>
+                                Séries
+                            </button>
                         </div>
                         
                         <div class="filter-submenu">
@@ -39,16 +48,20 @@
                                 <h3>Ordenar por</h3>
                                 <div class="sort-buttons">
                                     <button id="sort-rating" class="active">
-                                        <i class="fas fa-star"></i> Melhor Avaliados
+                                        <i class="fas fa-star"></i>
+                                        Melhor Avaliados
                                     </button>
                                     <button id="sort-popularity">
-                                        <i class="fas fa-fire"></i> Mais Populares
+                                        <i class="fas fa-fire"></i>
+                                        Mais Populares
                                     </button>
                                     <button id="sort-date">
-                                        <i class="fas fa-calendar"></i> Mais Recentes
+                                        <i class="fas fa-calendar-alt"></i>
+                                        Mais Recentes
                                     </button>
                                     <button id="sort-upcoming">
-                                        <i class="fas fa-calendar-alt"></i> Lançamentos Futuros
+                                        <i class="fas fa-calendar-plus"></i>
+                                        Lançamentos Futuros
                                     </button>
                                 </div>
                             </div>
@@ -58,47 +71,49 @@
             </nav>
         </div>
         
-        <div id="movies-series" class="movies-series-grid">
-            <!-- Skeleton loading -->
-            <div class="movie-series skeleton">
-                <div class="movie-info">
-                    <h2>&nbsp;</h2>
-                    <p>&nbsp;</p>
-                    <p>&nbsp;</p>
+        <main>
+            <div id="movies-series" class="movies-series-grid">
+                <!-- Skeleton loading -->
+                <div class="movie-series skeleton">
+                    <div class="movie-info">
+                        <h2>&nbsp;</h2>
+                        <p>&nbsp;</p>
+                        <p>&nbsp;</p>
+                    </div>
+                </div>
+                <div class="movie-series skeleton">
+                    <div class="movie-info">
+                        <h2>&nbsp;</h2>
+                        <p>&nbsp;</p>
+                        <p>&nbsp;</p>
+                    </div>
+                </div>
+                <div class="movie-series skeleton">
+                    <div class="movie-info">
+                        <h2>&nbsp;</h2>
+                        <p>&nbsp;</p>
+                        <p>&nbsp;</p>
+                    </div>
+                </div>
+                <div class="movie-series skeleton">
+                    <div class="movie-info">
+                        <h2>&nbsp;</h2>
+                        <p>&nbsp;</p>
+                        <p>&nbsp;</p>
+                    </div>
                 </div>
             </div>
-            <div class="movie-series skeleton">
-                <div class="movie-info">
-                    <h2>&nbsp;</h2>
-                    <p>&nbsp;</p>
-                    <p>&nbsp;</p>
-                </div>
+            
+            <div id="spinner" class="spinner" style="display: none;">
+                <div class="loading"></div>
             </div>
-            <div class="movie-series skeleton">
-                <div class="movie-info">
-                    <h2>&nbsp;</h2>
-                    <p>&nbsp;</p>
-                    <p>&nbsp;</p>
-                </div>
+            
+            <div class="button-container">
+                <button id="load-more">Carregar Mais</button>
+                <button id="back-to-top">Voltar ao Início</button>
             </div>
-            <div class="movie-series skeleton">
-                <div class="movie-info">
-                    <h2>&nbsp;</h2>
-                    <p>&nbsp;</p>
-                    <p>&nbsp;</p>
-                </div>
-            </div>
-        </div>
+        </main>
         
-        <div id="spinner" class="spinner" style="display: none;">
-            <div class="loading"></div>
-        </div>
-        
-        <div class="button-container">
-            <button id="load-more">Carregar Mais</button>
-            <button id="back-to-top">Voltar ao Início</button>
-        </div>
-
         <footer>
             <p>&copy; 2024 - Marcelo Ribeiro</p>
         </footer>
