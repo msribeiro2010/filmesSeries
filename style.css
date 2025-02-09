@@ -36,6 +36,7 @@ body {
 .container {
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     position: relative;
 }
 
@@ -43,7 +44,8 @@ main {
     margin-left: 250px;
     padding: 20px;
     width: 100%;
-    min-height: 100vh;
+    min-height: calc(100vh - 60px); /* Altura ajustada para o footer */
+    box-sizing: border-box;
 }
 
 .theme-toggle {
@@ -140,6 +142,7 @@ main {
     gap: 20px;
     padding: 1.5rem;
     margin-top: 80px;
+    margin-bottom: 40px; /* Espaço para o footer */
 }
 
 .movie-series {
@@ -1134,4 +1137,37 @@ body:after {
 
 .trailer-button i {
     font-size: 1.2rem;
+}
+
+/* Estilos do Footer */
+footer {
+    margin-left: 250px;
+    padding: 20px;
+    text-align: center;
+    background-color: var(--movie-bg);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+footer p {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: var(--secondary-color);
+}
+
+/* Ajustes responsivos para o footer */
+@media (max-width: 768px) {
+    footer {
+        margin-left: 0;
+        padding: 15px;
+    }
 }
