@@ -361,11 +361,6 @@ async function createStreamingSection(item, mediaType) {
             
             if (daysSinceRelease >= 0 && daysSinceRelease <= 60) { // Assume que filmes ficam ~2 meses em cartaz
                 hasProviders = true;
-                const streamingTitle = document.createElement('p');
-                streamingTitle.classList.add('streaming-title');
-                streamingTitle.textContent = 'Disponível em:';
-                container.appendChild(streamingTitle);
-
                 const providersContainer = document.createElement('div');
                 providersContainer.classList.add('providers-container');
 
@@ -390,13 +385,6 @@ async function createStreamingSection(item, mediaType) {
 
             if (filteredProviders.length > 0) {
                 hasProviders = true;
-                if (!container.querySelector('.streaming-title')) {
-                    const streamingTitle = document.createElement('p');
-                    streamingTitle.classList.add('streaming-title');
-                    streamingTitle.textContent = 'Disponível em:';
-                    container.appendChild(streamingTitle);
-                }
-
                 const providersContainer = container.querySelector('.providers-container') || 
                     document.createElement('div');
                 providersContainer.classList.add('providers-container');
