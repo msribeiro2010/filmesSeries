@@ -335,35 +335,92 @@ async function fetchStreamingInfo(mediaType, id) {
 
 // Função para criar a seção de streaming
 async function createStreamingSection(item, mediaType) {
-    const streamingInfo = await fetchStreamingInfo(mediaType, item.id);
-    
-    if (!streamingInfo) return null;
-    
-    const container = document.createElement('div');
-    container.classList.add('streaming-container');
-    
-    if (streamingInfo.flatrate) {
-        const streamingTitle = document.createElement('p');
-        streamingTitle.classList.add('streaming-title');
-        streamingTitle.textContent = 'Disponível em:';
-        container.appendChild(streamingTitle);
-        
-        const providersContainer = document.createElement('div');
-        providersContainer.classList.add('providers-container');
-        
-        streamingInfo.flatrate.forEach(provider => {
-            const providerImg = document.createElement('img');
-            providerImg.src = `https://image.tmdb.org/t/p/original${provider.logo_path}`;
-            providerImg.alt = provider.provider_name;
-            providerImg.title = provider.provider_name;
-            providerImg.classList.add('provider-logo');
-            providersContainer.appendChild(providerImg);
-        });
-        
-        container.appendChild(providersContainer);
+    try {
+        const streamingInfo = await fetchStreamingInfo(mediaType, item.id);
+        if (!streamingInfo) return null;
+
+        // IDs das plataformas que queremos mostrar
+        const allowedProviders = {
+            8: 'Netflix',
+            9: 'Amazon Prime',
+            384: 'Max',
+            337: 'Disney+',
+            // Cinema será mostrado se o filme estiver em cartaz
+        };
+
+        const container = document.createElement('div');
+        container.classList.add('streaming-container');
+
+        let hasProviders = false;
+
+        // Verifica se está em cartaz no cinema
+        if (mediaType === 'movie') {
+            const now = new Date();
+            const releaseDate = new Date(item.release_date);
+            const daysSinceRelease = Math.floor((now - releaseDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysSinceRelease >= 0 && daysSinceRelease <= 60) { // Assume que filmes ficam ~2 meses em cartaz
+                hasProviders = true;
+                const streamingTitle = document.createElement('p');
+                streamingTitle.classList.add('streaming-title');
+                streamingTitle.textContent = 'Disponível em:';
+                container.appendChild(streamingTitle);
+
+                const providersContainer = document.createElement('div');
+                providersContainer.classList.add('providers-container');
+
+                const cinemaProvider = document.createElement('div');
+                cinemaProvider.classList.add('provider-item');
+                cinemaProvider.innerHTML = `
+                    <div class="cinema-badge">
+                        <i class="fas fa-film"></i>
+                        <span>Cinema</span>
+                    </div>
+                `;
+                providersContainer.appendChild(cinemaProvider);
+                container.appendChild(providersContainer);
+            }
+        }
+
+        // Filtra apenas as plataformas permitidas
+        if (streamingInfo.flatrate) {
+            const filteredProviders = streamingInfo.flatrate.filter(provider => 
+                Object.keys(allowedProviders).includes(provider.provider_id.toString())
+            );
+
+            if (filteredProviders.length > 0) {
+                hasProviders = true;
+                if (!container.querySelector('.streaming-title')) {
+                    const streamingTitle = document.createElement('p');
+                    streamingTitle.classList.add('streaming-title');
+                    streamingTitle.textContent = 'Disponível em:';
+                    container.appendChild(streamingTitle);
+                }
+
+                const providersContainer = container.querySelector('.providers-container') || 
+                    document.createElement('div');
+                providersContainer.classList.add('providers-container');
+
+                filteredProviders.forEach(provider => {
+                    const providerImg = document.createElement('img');
+                    providerImg.src = `${IMAGE_BASE_URL}${provider.logo_path}`;
+                    providerImg.alt = allowedProviders[provider.provider_id];
+                    providerImg.title = allowedProviders[provider.provider_id];
+                    providerImg.classList.add('provider-logo');
+                    providersContainer.appendChild(providerImg);
+                });
+
+                if (!container.querySelector('.providers-container')) {
+                    container.appendChild(providersContainer);
+                }
+            }
+        }
+
+        return hasProviders ? container : null;
+    } catch (error) {
+        console.error('Erro ao criar seção de streaming:', error);
+        return null;
     }
-    
-    return container;
 }
 
 // Função para criar o card
@@ -607,36 +664,185 @@ function initializeTheme() {
 // Função para buscar trailer
 async function fetchTrailer(mediaType, id) {
     try {
-        // Tenta primeiro em português
-        let response = await fetch(`${BASE_URL}/${mediaType}/${id}/videos?api_key=${API_KEY}&language=pt-BR`);
-        let data = await response.json();
+        const url = `${BASE_URL}/${mediaType}/${id}/videos?api_key=${API_KEY}&language=pt-BR`;
+        const response = await fetch(url);
+        const data = await response.json();
         
-        // Se não encontrar em português, busca em inglês
-        if (!data.results.length) {
-            response = await fetch(`${BASE_URL}/${mediaType}/${id}/videos?api_key=${API_KEY}&language=en-US`);
-            data = await response.json();
-        }
-        
-        // Procura primeiro por trailers oficiais
-        let trailer = data.results.find(v => 
-            v.type === "Trailer" && 
-            (v.name.toLowerCase().includes("official") || 
-             v.name.toLowerCase().includes("oficial"))
+        // Tenta encontrar um trailer em português primeiro
+        let trailer = data.results.find(video => 
+            video.type.toLowerCase() === 'trailer' && 
+            video.site.toLowerCase() === 'youtube' &&
+            video.iso_639_1 === 'pt'
         );
         
-        // Se não encontrar trailer oficial, procura qualquer trailer
+        // Se não encontrar em português, busca em inglês
         if (!trailer) {
-            trailer = data.results.find(v => v.type === "Trailer");
+            // Busca trailers em inglês
+            const enUrl = `${BASE_URL}/${mediaType}/${id}/videos?api_key=${API_KEY}&language=en-US`;
+            const enResponse = await fetch(enUrl);
+            const enData = await enResponse.json();
+            
+            trailer = enData.results.find(video => 
+                video.type.toLowerCase() === 'trailer' && 
+                video.site.toLowerCase() === 'youtube'
+            );
         }
         
-        // Se ainda não encontrar, usa qualquer vídeo disponível
-        if (!trailer && data.results.length > 0) {
-            trailer = data.results[0];
-        }
-        
-        return trailer ? trailer.key : null;
+        return trailer;
     } catch (error) {
-        console.error("Erro ao buscar trailer:", error);
+        console.error('Erro ao buscar trailer:', error);
+        return null;
+    }
+}
+
+// Função para criar o botão do trailer
+function createTrailerButton() {
+    const button = document.createElement('button');
+    button.className = 'trailer-button';
+    button.innerHTML = '<i class="fas fa-play"></i>';
+    button.title = 'Assistir Trailer';
+    return button;
+}
+
+// Função para abrir o modal do trailer
+function openTrailerModal(videoKey) {
+    const modal = document.getElementById('trailer-modal');
+    const trailerContainer = document.getElementById('trailer-container');
+    
+    // Cria o iframe do YouTube
+    trailerContainer.innerHTML = `
+        <iframe
+            src="https://www.youtube.com/embed/${videoKey}?autoplay=1"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+        ></iframe>
+    `;
+    
+    modal.style.display = 'block';
+    
+    // Fecha o modal quando clicar no X
+    const closeBtn = document.querySelector('.close-modal');
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+        trailerContainer.innerHTML = ''; // Remove o iframe
+    };
+    
+    // Fecha o modal quando clicar fora dele
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            trailerContainer.innerHTML = ''; // Remove o iframe
+        }
+    };
+}
+
+// Modifica a função createCard para incluir o botão do trailer
+async function createCard(item, mediaType) {
+    try {
+        const card = document.createElement('div');
+        card.className = 'movie-series';
+        
+        // Busca o trailer
+        const trailer = await fetchTrailer(mediaType, item.id);
+        
+        // Cria o botão do trailer se houver trailer disponível
+        if (trailer) {
+            const trailerButton = createTrailerButton();
+            trailerButton.onclick = (e) => {
+                e.stopPropagation();
+                openTrailerModal(trailer.key);
+            };
+            card.appendChild(trailerButton);
+        }
+        
+        // Resto do código do card...
+        const imageContainer = document.createElement("div");
+        imageContainer.classList.add("image-container");
+        
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        if (item.poster_path) {
+            img.src = `${IMAGE_BASE_URL}${item.poster_path}`;
+            console.log("Imagem do poster:", img.src);
+        } else {
+            img.src = 'placeholder.jpg';
+            img.classList.add('no-poster');
+            console.log("Usando imagem placeholder");
+        }
+        img.alt = item.title || item.name;
+        
+        img.onerror = function() {
+            console.log("Erro ao carregar imagem, usando placeholder");
+            this.src = 'placeholder.jpg';
+            this.classList.add('no-poster');
+        };
+        
+        imageContainer.appendChild(img);
+        
+        const info = document.createElement("div");
+        info.classList.add("movie-info");
+        
+        const title = document.createElement("h2");
+        title.textContent = item.title || item.name;
+        
+        // Melhorando a exibição da nota
+        const rating = document.createElement("div");
+        rating.classList.add("rating");
+        const stars = Math.round(item.vote_average * 2) / 2; // Arredonda para 0.5 mais próximo
+        rating.innerHTML = `
+            <i class="fas fa-star"></i>
+            <span>${stars.toFixed(1)}</span>
+            <span class="vote-count">(${item.vote_count} votos)</span>
+        `;
+        
+        const date = document.createElement("p");
+        date.classList.add("date");
+        const releaseDate = new Date(item.release_date || item.first_air_date);
+        
+        // Se for um lançamento futuro, mostra quantos dias faltam
+        if (item.daysUntilRelease) {
+            date.classList.add("upcoming-date");
+            date.innerHTML = `<i class="fas fa-calendar"></i> ${
+                item.daysUntilRelease === 1 
+                    ? "Lança amanhã!"
+                    : `Faltam ${item.daysUntilRelease} dias`
+            }`;
+        } else {
+            date.innerHTML = `<i class="fas fa-calendar-alt"></i> ${releaseDate.toLocaleDateString('pt-BR')}`;
+        }
+        
+        info.appendChild(title);
+        info.appendChild(rating);
+        info.appendChild(date);
+
+        // Adiciona os gêneros
+        if (item.genre_ids && item.genre_ids.length > 0) {
+            const genres = await getGenres(item.genre_ids, mediaType);
+            const genreContainer = document.createElement("div");
+            genreContainer.classList.add("genre-container");
+            
+            genres.forEach(genre => {
+                const genreTag = document.createElement("span");
+                genreTag.classList.add("genre-tag");
+                genreTag.textContent = genre;
+                genreContainer.appendChild(genreTag);
+            });
+            
+            info.appendChild(genreContainer);
+        }
+        
+        // Adiciona as plataformas de streaming
+        const streamingSection = await createStreamingSection(item, mediaType);
+        if (streamingSection) {
+            info.appendChild(streamingSection);
+        }
+        
+        card.appendChild(imageContainer);
+        card.appendChild(info);
+        
+        return card;
+    } catch (error) {
+        console.error("Erro ao criar card:", error);
         return null;
     }
 }

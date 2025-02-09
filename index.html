@@ -12,59 +12,55 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Filmes e Séries
-                <button class="theme-toggle" aria-label="Alternar tema escuro">
-                    <i class="fas fa-moon"></i>
-                </button>
-            </h1>
-            
-            <nav class="navbar">
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+        <button class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <button class="theme-toggle" aria-label="Alternar tema escuro">
+            <i class="fas fa-moon"></i>
+        </button>
+
+        <div class="nav-content">
+            <div class="filter-section">
+                <div class="filter-buttons">
+                    <button id="filter-all" class="active">
+                        <i class="fas fa-border-all"></i>
+                        Todos
+                    </button>
+                    <button id="filter-movie">
+                        <i class="fas fa-film"></i>
+                        Filmes
+                    </button>
+                    <button id="filter-tv">
+                        <i class="fas fa-tv"></i>
+                        Séries
+                    </button>
                 </div>
                 
-                <div class="nav-content">
-                    <div class="filter-section">
-                        <div class="filter-buttons">
-                            <button id="filter-all" class="active">
-                                <i class="fas fa-border-all"></i>
-                                Todos
-                            </button>
-                            <button id="filter-movie">
-                                <i class="fas fa-film"></i>
-                                Filmes
-                            </button>
-                            <button id="filter-tv">
-                                <i class="fas fa-tv"></i>
-                                Séries
-                            </button>
-                        </div>
-                        
-                        <div class="sort-buttons">
-                            <button id="sort-rating" class="active">
-                                <i class="fas fa-star"></i>
-                                Melhor Avaliados
-                            </button>
-                            <button id="sort-popularity">
-                                <i class="fas fa-fire"></i>
-                                Mais Populares
-                            </button>
-                            <button id="sort-date">
-                                <i class="fas fa-calendar-alt"></i>
-                                Mais Recentes
-                            </button>
-                            <button id="sort-upcoming">
-                                <i class="fas fa-calendar-plus"></i>
-                                Lançamentos Futuros
-                            </button>
-                        </div>
-                    </div>
+                <div class="sort-buttons">
+                    <button id="sort-rating" class="active">
+                        <i class="fas fa-star"></i>
+                        Melhor Avaliados
+                    </button>
+                    <button id="sort-popularity">
+                        <i class="fas fa-fire"></i>
+                        Mais Populares
+                    </button>
+                    <button id="sort-date">
+                        <i class="fas fa-calendar-alt"></i>
+                        Mais Recentes
+                    </button>
+                    <button id="sort-upcoming">
+                        <i class="fas fa-calendar-plus"></i>
+                        Lançamentos Futuros
+                    </button>
                 </div>
-            </nav>
+            </div>
         </div>
+
+        <div class="nav-overlay"></div>
         
         <main>
             <div id="movies-series" class="movies-series-grid">
@@ -106,6 +102,14 @@
             <div class="button-container">
                 <button id="load-more">Carregar Mais</button>
                 <button id="back-to-top">Voltar ao Início</button>
+            </div>
+            
+            <!-- Modal do Trailer -->
+            <div id="trailer-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <div id="trailer-container"></div>
+                </div>
             </div>
         </main>
         
