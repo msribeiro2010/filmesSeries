@@ -990,7 +990,9 @@ function createDetailsModal(item, mediaType) {
 
     modal.innerHTML = `
         <div class="details-modal-content">
-            <button class="close-details">&times;</button>
+            <button class="close-details" aria-label="Fechar detalhes">
+                <i class="fas fa-times"></i>
+            </button>
             <div class="details-header">
                 <img src="${IMAGE_BASE_URL}${item.poster_path}" 
                      alt="${item.title || item.name}" 
@@ -1034,37 +1036,42 @@ function createDetailsModal(item, mediaType) {
         </div>
     `;
 
-    // Adicionar evento de fechar
-    modal.querySelector('.close-details').addEventListener('click', () => {
-        modal.remove();
-    });
+    // Adiciona eventos de fechamento
+    const closeButton = modal.querySelector('.close-details');
+    
+    // Função de fechamento
+    const closeModal = () => {
+        modal.classList.add('modal-closing');
+        setTimeout(() => {
+            modal.remove();
+            document.body.style.overflow = 'auto'; // Restaura o scroll
+        }, 300);
+    };
 
-    // Fechar ao clicar fora do modal
+    // Evento de clique no botão fechar
+    closeButton.addEventListener('click', closeModal);
+
+    // Evento de clique fora do modal
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            modal.remove();
+            closeModal();
         }
     });
 
-    // Carregar plataformas de streaming
-    fetchStreamingInfo(mediaType, item.id).then(providers => {
-        const platformsList = modal.querySelector(`#platforms-${item.id}`);
-        if (providers && providers.length > 0) {
-            platformsList.innerHTML = providers.map(provider => `
-                <div class="platform-item">
-                    <img src="${IMAGE_BASE_URL}${provider.logo_path}" 
-                         alt="${provider.provider_name}" 
-                         class="provider-logo">
-                    <span class="provider-name">${provider.provider_name}</span>
-                </div>
-            `).join('');
-        } else {
-            platformsList.innerHTML = 'Não disponível em streaming no momento.';
+    // Evento de tecla ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
         }
     });
+
+    // Previne scroll do body quando o modal está aberto
+    document.body.style.overflow = 'hidden';
 
     document.body.appendChild(modal);
-    modal.style.display = 'block';
+    requestAnimationFrame(() => {
+        modal.classList.add('modal-open');
+    });
 }
 
 // Adicionar evento de clique nos cards

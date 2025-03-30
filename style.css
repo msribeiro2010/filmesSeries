@@ -2990,7 +2990,7 @@ button:focus-visible,
 
 /* Modal de detalhes */
 .details-modal {
-    display: none;
+    display: flex;
     position: fixed;
     z-index: 2000;
     left: 0;
@@ -2998,312 +2998,98 @@ button:focus-visible,
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    align-items: center;
+    justify-content: center;
+}
+
+.details-modal.modal-open {
+    opacity: 1;
+}
+
+.details-modal.modal-closing {
+    opacity: 0;
 }
 
 .details-modal-content {
     position: relative;
     background: var(--card-bg);
-    margin: 5% auto;
-    padding: 1.5rem;
     width: 90%;
     max-width: 600px;
-    border-radius: var(--border-radius);
     max-height: 90vh;
     overflow-y: auto;
-    animation: modalSlideIn 0.3s ease;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
 }
 
-.details-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.details-poster {
-    width: 200px;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.details-info {
-    flex: 1;
-}
-
-.details-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-color);
-}
-
-.details-metadata {
-    display: grid;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.details-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.details-section-title {
-    font-weight: 600;
-    color: var(--text-color);
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-}
-
-.details-genres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.details-platforms {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--shadow-color);
+.modal-open .details-modal-content {
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .close-details {
-    position: absolute;
-    top: 1rem;
+    position: fixed;
+    top: env(safe-area-inset-top, 1rem);
     right: 1rem;
-    background: none;
+    width: 44px;
+    height: 44px;
+    background: var(--primary-color);
     border: none;
-    color: var(--text-color);
+    border-radius: 50%;
+    color: white;
     font-size: 1.5rem;
     cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2001;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.close-details:hover {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-@keyframes modalSlideIn {
-    from {
-        transform: translateY(-10%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Ajustes responsivos para o modal */
+/* Ajustes para dispositivos móveis */
 @media (max-width: 768px) {
     .details-modal-content {
-        margin: 0;
         width: 100%;
         height: 100%;
-        max-height: 100vh;
+        max-height: 100%;
+        margin: 0;
         border-radius: 0;
+        padding: calc(env(safe-area-inset-top) + 60px) 1rem 1rem 1rem;
     }
 
-    .details-header {
-        flex-direction: column;
+    .details-modal {
+        align-items: flex-start;
     }
 
-    .details-poster {
-        width: 100%;
-        max-width: 300px;
-        margin: 0 auto;
-    }
-}
-
-/* Cursor pointer nos cards para indicar clique */
-.movie-series {
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.movie-series:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-/* Ajustes base para dispositivos móveis */
-@media screen and (max-width: 768px) {
-    .movies-series-grid {
-        --min-card-width: clamp(140px, calc(50% - 1rem), 180px);
-        gap: 1rem;
-        padding: 1rem;
-        padding-top: calc(env(safe-area-inset-top) + 60px);
+    /* Melhorar scrolling em iOS */
+    .details-modal-content {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
     }
 
-    .movie-series {
-        max-height: 380px;
-    }
-
-    .movie-info {
-        padding: 0.8rem;
-        gap: 0.5rem;
-    }
-
-    .movie-title {
-        font-size: 0.9rem;
-        line-height: 1.2;
+    /* Garantir que o botão de fechar seja sempre visível */
+    .close-details {
+        position: fixed;
+        top: max(env(safe-area-inset-top), 1rem);
+        right: 1rem;
     }
 }
 
-/* iPhone SE, iPhone 8, iPhone 12/13/14 Mini */
-@media screen and (device-width: 375px), 
-       screen and (device-width: 390px),
-       screen and (max-width: 400px) {
-    .movies-series-grid {
-        --min-card-width: calc(50% - 0.5rem);
-        gap: 0.8rem;
-        padding: 0.8rem;
-    }
-
-    .movie-info {
-        padding: 0.6rem;
-    }
-
-    .movie-title {
-        font-size: 0.85rem;
-    }
-
-    .rating-container, .release-date {
-        padding: 0.3rem 0.5rem;
-        font-size: 0.75rem;
-    }
-
-    .genre-tag {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.7rem;
-    }
+/* Prevenir scroll do conteúdo por trás do modal */
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
 }
 
-/* iPhone Pro/Pro Max, grandes telas Samsung */
-@media screen and (min-width: 390px) and (max-width: 428px) {
-    .movies-series-grid {
-        --min-card-width: calc(50% - 0.75rem);
-        gap: 1rem;
-    }
-
-    .movie-info {
-        padding: 0.7rem;
-    }
-}
-
-/* Samsung Galaxy Fold (fechado) */
-@media screen and (max-width: 280px) {
-    .movies-series-grid {
-        --min-card-width: 100%;
-        gap: 1rem;
-    }
-
-    .movie-info {
-        padding: 0.8rem;
-    }
-
-    .movie-title {
-        font-size: 1rem;
-    }
-}
-
-/* Ajustes para notch e Dynamic Island */
-@supports (padding-top: env(safe-area-inset-top)) {
-    .nav-content {
-        padding-top: calc(env(safe-area-inset-top) + 1rem);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
-    }
-
-    .hamburger {
-        top: calc(env(safe-area-inset-top) + 0.5rem);
-        right: max(1rem, env(safe-area-inset-right));
-    }
-
-    .theme-toggle {
-        top: calc(env(safe-area-inset-top) + 0.5rem);
-        right: calc(env(safe-area-inset-right) + 3.5rem);
-    }
-}
-
-/* Ajustes para telas com alta densidade de pixels */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    .movie-series {
-        border-radius: 12px;
-    }
-
-    .image-container img {
-        -webkit-transform: translateZ(0);
-        transform: translateZ(0);
-    }
-}
-
-/* Ajustes para modo paisagem em dispositivos móveis */
-@media screen and (max-width: 932px) and (orientation: landscape) {
-    .movies-series-grid {
-        --min-card-width: calc(33.333% - 1rem);
-        padding-top: calc(env(safe-area-inset-top) + 70px);
-    }
-
-    .nav-content {
-        height: 100dvh;
-    }
-}
-
-/* Ajustes para telas maiores Samsung e iPad */
-@media screen and (min-width: 768px) and (max-width: 1024px) {
-    .movies-series-grid {
-        --min-card-width: calc(33.333% - 1rem);
-    }
-
-    .movie-series {
-        max-height: 420px;
-    }
-}
-
-/* Ajustes para interação touch */
-@media (hover: none) and (pointer: coarse) {
-    .movie-series {
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .trailer-button,
-    .genre-tag,
-    .platform-item {
-        min-height: 44px;
-        min-width: 44px;
-    }
-
-    .rating-container,
-    .release-date {
-        min-height: 36px;
-    }
-}
-
-/* Ajustes para scroll suave */
-.movies-series-grid {
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-}
-
-/* Melhorias de performance */
-.movie-series {
-    will-change: transform;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-
-/* Ajustes para dark mode */
-@media (prefers-color-scheme: dark) {
-    [data-theme="dark"] .movie-series {
-        background: rgba(255, 255, 255, 0.05);
-    }
+/* Melhorar acessibilidade do foco */
+.close-details:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-color), 0 0 0 6px rgba(255, 255, 255, 0.4);
 }
