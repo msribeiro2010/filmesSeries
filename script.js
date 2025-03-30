@@ -163,7 +163,7 @@ async function fetchItems() {
             return;
         }
 
-        // Remove os skeleton loaders na primeira página
+        // Remove os itens anteriores na primeira página
         if (currentPage === 1) {
             mainContainer.innerHTML = "";
             allItems = [];
@@ -173,10 +173,19 @@ async function fetchItems() {
                 const skeleton = document.createElement('div');
                 skeleton.classList.add('movie-series', 'skeleton');
                 skeleton.innerHTML = `
+                    <div class="image-container">
+                        <div class="skeleton-img"></div>
+                    </div>
                     <div class="movie-info">
-                        <h2>&nbsp;</h2>
-                        <p>&nbsp;</p>
-                        <p>&nbsp;</p>
+                        <div class="movie-header">
+                            <div class="title-skeleton"></div>
+                        </div>
+                        <div class="metadata-skeleton">
+                            <div class="rating-skeleton"></div>
+                            <div class="country-skeleton"></div>
+                        </div>
+                        <div class="date-skeleton"></div>
+                        <div class="genres-skeleton"></div>
                     </div>
                 `;
                 mainContainer.appendChild(skeleton);
@@ -184,77 +193,52 @@ async function fetchItems() {
         }
 
         let newItems = [];
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
+        const currentDate = new Date().toISOString().split('T')[0];
         
-        // Se for lançamentos futuros, usa uma lógica diferente
+        // Configuração base para a API
+        const baseParams = new URLSearchParams({
+            api_key: API_KEY,
+            language: 'pt-BR',
+            'vote_count.gte': '50',
+            page: currentPage.toString()
+        });
+
+        // Lógica para diferentes tipos de ordenação
         if (currentSort === 'upcoming') {
-            if (currentPage === 1) {
-                newItems = await fetchUpcoming();
-                newItems = newItems.filter(item => {
-                    const itemDate = new Date(item.release_date || item.first_air_date);
-                    return itemDate.getFullYear() >= 2024;
-                }).map(item => ({
-                    ...item,
-                    daysUntilRelease: Math.ceil(
-                        (new Date(item.release_date || item.first_air_date) - currentDate) / 
-                        (1000 * 60 * 60 * 24)
-                    )
-                }));
-            }
+            newItems = await fetchUpcoming();
         } else {
             const requests = [];
             
-            // Configuração base para filmes e séries
-            const baseParams = new URLSearchParams({
-                api_key: API_KEY,
-                language: 'pt-BR',
-                'vote_count.gte': '50',
-                page: currentPage
-            });
-
-            // Adiciona filtro de data para mostrar apenas de 2024 em diante
-            baseParams.append('primary_release_date.gte', '2024-01-01');
-            baseParams.append('first_air_date.gte', '2024-01-01');
-
-            if (currentSort === 'date') {
-                baseParams.append('sort_by', 'primary_release_date.desc,first_air_date.desc');
-            } else if (currentSort === 'rating') {
-                baseParams.append('sort_by', 'vote_average.desc');
-                baseParams.append('vote_average.gte', '6');
-            } else if (currentSort === 'popularity') {
-                baseParams.append('sort_by', 'popularity.desc');
+            // Adiciona parâmetros de ordenação
+            switch(currentSort) {
+                case 'rating':
+                    baseParams.append('sort_by', 'vote_average.desc');
+                    baseParams.append('vote_average.gte', '6');
+                    break;
+                case 'popularity':
+                    baseParams.append('sort_by', 'popularity.desc');
+                    break;
+                case 'date':
+                    baseParams.append('sort_by', 'primary_release_date.desc,first_air_date.desc');
+                    break;
             }
-            
+
+            // Filtra por tipo de mídia
             if (currentFilter === "all" || currentFilter === "movie") {
-                const movieParams = new URLSearchParams(baseParams);
-                const movieUrl = `${BASE_URL}/discover/movie?${movieParams.toString()}`;
-                console.log("Buscando filmes:", movieUrl);
+                const movieUrl = `${BASE_URL}/discover/movie?${baseParams.toString()}`;
                 requests.push(
                     fetch(movieUrl)
                         .then(res => res.json())
-                        .then(data => data.results
-                            .filter(item => {
-                                const releaseDate = new Date(item.release_date);
-                                return releaseDate.getFullYear() >= 2024;
-                            })
-                            .map(item => ({ ...item, media_type: 'movie' })))
+                        .then(data => data.results.map(item => ({ ...item, media_type: 'movie' })))
                 );
             }
             
             if (currentFilter === "all" || currentFilter === "tv") {
-                const tvParams = new URLSearchParams(baseParams);
-                const tvUrl = `${BASE_URL}/discover/tv?${tvParams.toString()}`;
-                console.log("Buscando séries:", tvUrl);
+                const tvUrl = `${BASE_URL}/discover/tv?${baseParams.toString()}`;
                 requests.push(
                     fetch(tvUrl)
                         .then(res => res.json())
-                        .then(data => data.results
-                            .filter(item => {
-                                const firstAirDate = new Date(item.first_air_date);
-                                return firstAirDate.getFullYear() >= 2024;
-                            })
-                            .map(item => ({ ...item, media_type: 'tv' })))
+                        .then(data => data.results.map(item => ({ ...item, media_type: 'tv' })))
                 );
             }
 
@@ -264,34 +248,23 @@ async function fetchItems() {
         
         console.log("Novos itens encontrados:", newItems.length);
         
-        // Ordena os itens
-        const sortedItems = sortItems(newItems, currentSort);
-        allItems = [...allItems, ...sortedItems];
-        
+        // Remove os skeleton loaders
+        const skeletons = mainContainer.querySelectorAll('.skeleton');
+        skeletons.forEach(skeleton => skeleton.remove());
+
         // Cria e adiciona os cards
-        for (const item of sortedItems) {
-            try {
-                console.log("Processando item:", item.title || item.name);
-                const card = await createCard(item, item.media_type);
-                if (card) {
-                    // Remove os skeleton loaders se existirem
-                    const skeletons = mainContainer.querySelectorAll('.skeleton');
-                    skeletons.forEach(skeleton => skeleton.remove());
-                    
-                    console.log("Adicionando card ao container para:", item.title || item.name);
-                    mainContainer.appendChild(card);
-                } else {
-                    console.error("Card não foi criado para:", item.title || item.name);
-                }
-            } catch (error) {
-                console.error("Erro ao processar item:", item.title || item.name, error);
+        for (const item of newItems) {
+            const card = await createCard(item, item.media_type);
+            if (card) {
+                mainContainer.appendChild(card);
             }
         }
 
-        // Só incrementa a página se não for lançamentos futuros
+        // Incrementa a página se não for lançamentos futuros
         if (currentSort !== 'upcoming') {
             currentPage++;
         }
+
     } catch (error) {
         console.error("Erro ao buscar dados:", error);
     } finally {
@@ -724,117 +697,6 @@ function openTrailerModal(videoKey) {
     };
 }
 
-// Modifica a função createCard para incluir o botão do trailer
-async function createCard(item, mediaType) {
-    try {
-        const card = document.createElement('div');
-        card.className = 'movie-series';
-        
-        // Busca o trailer
-        const trailer = await fetchTrailer(mediaType, item.id);
-        
-        // Cria o botão do trailer se houver trailer disponível
-        if (trailer) {
-            const trailerButton = createTrailerButton();
-            trailerButton.onclick = (e) => {
-                e.stopPropagation();
-                openTrailerModal(trailer.key);
-            };
-            card.appendChild(trailerButton);
-        }
-        
-        // Resto do código do card...
-        const imageContainer = document.createElement("div");
-        imageContainer.classList.add("image-container");
-        
-        const img = document.createElement("img");
-        img.loading = "lazy";
-        if (item.poster_path) {
-            img.src = `${IMAGE_BASE_URL}${item.poster_path}`;
-            console.log("Imagem do poster:", img.src);
-        } else {
-            img.src = 'placeholder.jpg';
-            img.classList.add('no-poster');
-            console.log("Usando imagem placeholder");
-        }
-        img.alt = item.title || item.name;
-        
-        img.onerror = function() {
-            console.log("Erro ao carregar imagem, usando placeholder");
-            this.src = 'placeholder.jpg';
-            this.classList.add('no-poster');
-        };
-        
-        imageContainer.appendChild(img);
-        
-        const info = document.createElement("div");
-        info.classList.add("movie-info");
-        
-        const title = document.createElement("h2");
-        title.textContent = item.title || item.name;
-        
-        // Melhorando a exibição da nota
-        const rating = document.createElement("div");
-        rating.classList.add("rating");
-        const stars = Math.round(item.vote_average * 2) / 2; // Arredonda para 0.5 mais próximo
-        rating.innerHTML = `
-            <i class="fas fa-star"></i>
-            <span>${stars.toFixed(1)}</span>
-            <span class="vote-count">(${item.vote_count} votos)</span>
-        `;
-        
-        const date = document.createElement("p");
-        date.classList.add("date");
-        const releaseDate = new Date(item.release_date || item.first_air_date);
-        
-        // Se for um lançamento futuro, mostra quantos dias faltam
-        if (item.daysUntilRelease) {
-            date.classList.add("upcoming-date");
-            date.innerHTML = `<i class="fas fa-calendar"></i> ${
-                item.daysUntilRelease === 1 
-                    ? "Lança amanhã!"
-                    : `Faltam ${item.daysUntilRelease} dias`
-            }`;
-        } else {
-            date.innerHTML = `<i class="fas fa-calendar-alt"></i> ${releaseDate.toLocaleDateString('pt-BR')}`;
-        }
-        
-        info.appendChild(title);
-        info.appendChild(rating);
-        info.appendChild(date);
-
-        // Adiciona os gêneros
-        if (item.genre_ids && item.genre_ids.length > 0) {
-            const genres = await getGenres(item.genre_ids, mediaType);
-            const genreContainer = document.createElement("div");
-            genreContainer.classList.add("genre-container");
-            
-            genres.forEach(genre => {
-                const genreTag = document.createElement("span");
-                genreTag.classList.add("genre-tag");
-                genreTag.textContent = genre;
-                genreContainer.appendChild(genreTag);
-            });
-            
-            info.appendChild(genreContainer);
-        }
-        
-        // Adiciona as plataformas de streaming
-        const streamingSection = await createStreamingSection(item, mediaType);
-        if (streamingSection) {
-            info.appendChild(streamingSection);
-        }
-        
-        card.appendChild(imageContainer);
-        card.appendChild(info);
-        
-        return card;
-    } catch (error) {
-        console.error("Erro ao criar card:", error);
-        return null;
-    }
-}
-
 // Função para inicializar os eventos do menu
 function initializeMenuEvents() {
     const hamburger = document.querySelector('.hamburger');
@@ -881,3 +743,145 @@ function initializeMenuEvents() {
 
 // Inicializa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', init);
+
+function createMovieSeriesCard(item) {
+    const card = document.createElement('div');
+    card.className = 'movie-series';
+
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'image-container';
+
+    const img = document.createElement('img');
+    img.src = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'placeholder.jpg';
+    img.alt = item.title || item.name;
+    
+    const trailerButton = document.createElement('button');
+    trailerButton.className = 'trailer-button';
+    trailerButton.innerHTML = '<i class="fas fa-play"></i>';
+    trailerButton.setAttribute('aria-label', 'Ver trailer');
+
+    const movieInfo = document.createElement('div');
+    movieInfo.className = 'movie-info';
+
+    // Header com título e metadados
+    const movieHeader = document.createElement('div');
+    movieHeader.className = 'movie-header';
+
+    const title = document.createElement('h2');
+    title.className = 'movie-title';
+    title.textContent = item.title || item.name;
+
+    const movieMetadata = document.createElement('div');
+    movieMetadata.className = 'movie-metadata';
+
+    // Rating
+    const rating = document.createElement('div');
+    rating.className = 'rating';
+    rating.innerHTML = `
+        <i class="fas fa-star"></i>
+        <span class="rating-value">${item.vote_average.toFixed(1)}</span>
+        <span class="vote-count">(${item.vote_count})</span>
+    `;
+
+    // País
+    const country = document.createElement('div');
+    country.className = 'country';
+    country.innerHTML = `
+        <i class="fas fa-globe"></i>
+        <span class="country-name">${item.origin_country || 'N/A'}</span>
+    `;
+
+    // Data de lançamento
+    const dateContainer = document.createElement('div');
+    dateContainer.className = 'date-container';
+    const releaseDate = document.createElement('div');
+    releaseDate.className = 'release-date';
+    const date = new Date(item.release_date || item.first_air_date);
+    releaseDate.innerHTML = `
+        <i class="fas fa-calendar"></i>
+        <span class="date-value">${date.toLocaleDateString('pt-BR')}</span>
+    `;
+
+    // Gêneros
+    const genresContainer = document.createElement('div');
+    genresContainer.className = 'genres-container';
+    item.genres.forEach(genre => {
+        const genreTag = document.createElement('span');
+        genreTag.className = 'genre-tag';
+        genreTag.textContent = genre;
+        genresContainer.appendChild(genreTag);
+    });
+
+    // Plataformas
+    const platformsSection = document.createElement('div');
+    platformsSection.className = 'platforms-section';
+    
+    const platformsTitle = document.createElement('div');
+    platformsTitle.className = 'platforms-title';
+    platformsTitle.textContent = 'Disponível em:';
+
+    const platformsList = document.createElement('div');
+    platformsList.className = 'platforms-list';
+    
+    if (item.platforms && item.platforms.length > 0) {
+        item.platforms.forEach(platform => {
+            const platformItem = document.createElement('div');
+            platformItem.className = 'platform-item';
+            platformItem.innerHTML = `
+                <i class="fas fa-play-circle"></i>
+                ${platform}
+            `;
+            platformsList.appendChild(platformItem);
+        });
+    } else {
+        const noPlatforms = document.createElement('div');
+        noPlatforms.className = 'no-platforms';
+        noPlatforms.textContent = 'Informação não disponível';
+        platformsList.appendChild(noPlatforms);
+    }
+
+    // Montagem da estrutura
+    imageContainer.appendChild(img);
+    imageContainer.appendChild(trailerButton);
+
+    movieHeader.appendChild(title);
+    movieMetadata.appendChild(rating);
+    movieMetadata.appendChild(country);
+    movieHeader.appendChild(movieMetadata);
+
+    dateContainer.appendChild(releaseDate);
+
+    platformsSection.appendChild(platformsTitle);
+    platformsSection.appendChild(platformsList);
+
+    movieInfo.appendChild(movieHeader);
+    movieInfo.appendChild(dateContainer);
+    movieInfo.appendChild(genresContainer);
+    movieInfo.appendChild(platformsSection);
+
+    card.appendChild(imageContainer);
+    card.appendChild(movieInfo);
+
+    return card;
+}
+
+// Adicione sanitização para os dados recebidos da API antes de inserir no DOM
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Use ao inserir conteúdo dinâmico
+movieTitle.innerHTML = sanitizeHTML(title);
+
+// Limpe dados sensíveis do localStorage quando necessário
+function clearStorageOnLogout() {
+    localStorage.removeItem('theme');
+    // ... outros dados que precisem ser limpos
+}
+
+// Adicione validação para qualquer input do usuário
+function validateInput(input) {
+    return input.replace(/[<>]/g, '');
+}

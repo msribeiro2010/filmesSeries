@@ -64,35 +64,64 @@
         
         <main>
             <div id="movies-series" class="movies-series-grid">
+                <div class="movie-series">
+                    <div class="image-container">
+                        <img src="" alt="">
+                        <button class="trailer-button" aria-label="Ver trailer">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                    <div class="movie-info">
+                        <div class="movie-header">
+                            <h2 class="movie-title"></h2>
+                            <div class="movie-metadata">
+                                <div class="rating">
+                                    <i class="fas fa-star"></i>
+                                    <span class="rating-value"></span>
+                                    <span class="vote-count"></span>
+                                </div>
+                                <div class="country">
+                                    <i class="fas fa-globe"></i>
+                                    <span class="country-name"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="date-container">
+                            <div class="release-date">
+                                <i class="fas fa-calendar"></i>
+                                <span class="date-value"></span>
+                            </div>
+                        </div>
+                        <div class="genres-container"></div>
+                        <div class="platforms-section">
+                            <div class="platforms-title">Disponível em:</div>
+                            <div class="platforms-list"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Skeleton loading -->
                 <div class="movie-series skeleton">
+                    <div class="image-container">
+                        <div class="skeleton-img"></div>
+                    </div>
                     <div class="movie-info">
-                        <h2>&nbsp;</h2>
-                        <p>&nbsp;</p>
-                        <p>&nbsp;</p>
+                        <div class="movie-header">
+                            <div class="title-skeleton"></div>
+                        </div>
+                        <div class="metadata-skeleton">
+                            <div class="rating-skeleton"></div>
+                            <div class="country-skeleton"></div>
+                        </div>
+                        <div class="date-skeleton"></div>
+                        <div class="genres-skeleton">
+                            <div class="genre-tag-skeleton"></div>
+                            <div class="genre-tag-skeleton"></div>
+                        </div>
+                        <div class="platforms-skeleton"></div>
                     </div>
                 </div>
-                <div class="movie-series skeleton">
-                    <div class="movie-info">
-                        <h2>&nbsp;</h2>
-                        <p>&nbsp;</p>
-                        <p>&nbsp;</p>
-                    </div>
-                </div>
-                <div class="movie-series skeleton">
-                    <div class="movie-info">
-                        <h2>&nbsp;</h2>
-                        <p>&nbsp;</p>
-                        <p>&nbsp;</p>
-                    </div>
-                </div>
-                <div class="movie-series skeleton">
-                    <div class="movie-info">
-                        <h2>&nbsp;</h2>
-                        <p>&nbsp;</p>
-                        <p>&nbsp;</p>
-                    </div>
-                </div>
+                <!-- Repetir skeleton conforme necessário -->
             </div>
             
             <div id="spinner" class="spinner" style="display: none;">
@@ -106,7 +135,7 @@
         </main>
 
         <footer>
-            <p>Desenvolvido por <a href="https://github.com/msribeiro2010" target="_blank">Marcelo Ribeiro</a></p>
+            <p>Desenvolvido por <a href="https://github.com/msribeiro2010" target="_blank" rel="noopener noreferrer">Marcelo Ribeiro</a></p>
         </footer>
     </div>
 
