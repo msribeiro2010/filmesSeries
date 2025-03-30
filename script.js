@@ -12,6 +12,26 @@ let allItems = [];
 let movieGenres = {};
 let tvGenres = {};
 
+// Adicionar Intersection Observer para lazy loading
+const observerOptions = {
+    root: null,
+    rootMargin: '50px',
+    threshold: 0.1
+};
+
+const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                observer.unobserve(img);
+            }
+        }
+    });
+}, observerOptions);
+
 // Função principal de inicialização
 async function init() {
     try {
@@ -456,9 +476,11 @@ async function createCard(item, mediaType) {
         // Imagem do poster
         const img = document.createElement("img");
         img.loading = "lazy";
-        img.src = item.poster_path 
+        img.dataset.src = item.poster_path 
             ? `${IMAGE_BASE_URL}${item.poster_path}`
             : 'placeholder.jpg';
+        img.src = 'placeholder-small.jpg'; // Imagem de baixa resolução
+        imageObserver.observe(img);
         img.alt = item.title || item.name;
         imageContainer.appendChild(img);
 
