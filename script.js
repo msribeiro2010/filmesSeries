@@ -276,17 +276,44 @@ async function fetchItems() {
 
 // Função para ordenar os itens
 function sortItems(items, sortType) {
+    const currentDate = new Date();
+    
+    // Função auxiliar para calcular dias de diferença
+    function getDaysDifference(date) {
+        const itemDate = new Date(date);
+        return Math.floor((itemDate - currentDate) / (1000 * 60 * 60 * 24));
+    }
+
+    // Função para verificar se é lançamento atual (últimos 30 dias)
+    function isCurrentRelease(date) {
+        if (!date) return false;
+        const days = getDaysDifference(date);
+        return days >= -30 && days <= 0; // Últimos 30 dias
+    }
+
     return items.sort((a, b) => {
+        const dateA = a.release_date || a.first_air_date;
+        const dateB = b.release_date || b.first_air_date;
+        
+        // Verifica se são lançamentos atuais
+        const isACurrentRelease = isCurrentRelease(dateA);
+        const isBCurrentRelease = isCurrentRelease(dateB);
+
+        // Prioriza lançamentos atuais
+        if (isACurrentRelease && !isBCurrentRelease) return -1;
+        if (!isACurrentRelease && isBCurrentRelease) return 1;
+
+        // Se ambos são ou não são lançamentos atuais, aplica a ordenação normal
         if (sortType === 'date' || sortType === 'combined') {
-            const dateA = new Date(a.release_date || a.first_air_date || '1900-01-01');
-            const dateB = new Date(b.release_date || b.first_air_date || '1900-01-01');
-            return dateB - dateA; // Ordem decrescente (mais recente primeiro)
+            return new Date(dateB) - new Date(dateA);
         } else if (sortType === 'rating') {
             return b.vote_average - a.vote_average;
         } else if (sortType === 'popularity') {
             return b.popularity - a.popularity;
         } else if (sortType === 'upcoming') {
-            return a.daysUntilRelease - b.daysUntilRelease;
+            const daysUntilA = getDaysDifference(dateA);
+            const daysUntilB = getDaysDifference(dateB);
+            return daysUntilA - daysUntilB;
         }
         return 0;
     });
@@ -312,13 +339,16 @@ async function createStreamingSection(item, mediaType) {
         const streamingInfo = await fetchStreamingInfo(mediaType, item.id);
         if (!streamingInfo) return null;
 
-        // IDs das plataformas que queremos mostrar
-        const allowedProviders = {
-            8: 'Netflix',
-            9: 'Amazon Prime',
-            384: 'Max',
-            337: 'Disney+',
-            // Cinema será mostrado se o filme estiver em cartaz
+        // IDs e nomes das plataformas prioritárias
+        const priorityProviders = {
+            8: { name: 'Netflix', icon: 'netflix' },
+            9: { name: 'Amazon Prime', icon: 'amazon' },
+            337: { name: 'Disney+', icon: 'disney' },
+            384: { name: 'Max', icon: 'max' },
+            619: { name: 'Globoplay', icon: 'globo' },
+            531: { name: 'Paramount+', icon: 'paramount' },
+            350: { name: 'Apple TV+', icon: 'apple' },
+            // Cinema será tratado separadamente
         };
 
         const container = document.createElement('div');
@@ -332,48 +362,55 @@ async function createStreamingSection(item, mediaType) {
             const releaseDate = new Date(item.release_date);
             const daysSinceRelease = Math.floor((now - releaseDate) / (1000 * 60 * 60 * 24));
             
-            if (daysSinceRelease >= 0 && daysSinceRelease <= 60) { // Assume que filmes ficam ~2 meses em cartaz
+            if (daysSinceRelease >= -30 && daysSinceRelease <= 60) { // 30 dias antes até 60 dias após lançamento
                 hasProviders = true;
-                const providersContainer = document.createElement('div');
-                providersContainer.classList.add('providers-container');
-
                 const cinemaProvider = document.createElement('div');
-                cinemaProvider.classList.add('provider-item');
+                cinemaProvider.classList.add('provider-item', 'cinema-badge');
                 cinemaProvider.innerHTML = `
-                    <div class="cinema-badge">
-                        <i class="fas fa-film"></i>
-                        <span>Cinema</span>
-                    </div>
+                    <i class="fas fa-film"></i>
+                    <span>Em Cartaz nos Cinemas</span>
                 `;
-                providersContainer.appendChild(cinemaProvider);
-                container.appendChild(providersContainer);
+                container.appendChild(cinemaProvider);
             }
         }
 
-        // Filtra apenas as plataformas permitidas
+        // Filtra e ordena as plataformas de streaming
         if (streamingInfo.flatrate) {
-            const filteredProviders = streamingInfo.flatrate.filter(provider => 
-                Object.keys(allowedProviders).includes(provider.provider_id.toString())
-            );
-
-            if (filteredProviders.length > 0) {
-                hasProviders = true;
-                const providersContainer = container.querySelector('.providers-container') || 
-                    document.createElement('div');
-                providersContainer.classList.add('providers-container');
-
-                filteredProviders.forEach(provider => {
-                    const providerImg = document.createElement('img');
-                    providerImg.src = `${IMAGE_BASE_URL}${provider.logo_path}`;
-                    providerImg.alt = allowedProviders[provider.provider_id];
-                    providerImg.title = allowedProviders[provider.provider_id];
-                    providerImg.classList.add('provider-logo');
-                    providersContainer.appendChild(providerImg);
+            const availableProviders = streamingInfo.flatrate
+                .filter(provider => priorityProviders[provider.provider_id])
+                .sort((a, b) => {
+                    // Ordena baseado na ordem das plataformas prioritárias
+                    const providerOrder = Object.keys(priorityProviders);
+                    return providerOrder.indexOf(a.provider_id.toString()) - 
+                           providerOrder.indexOf(b.provider_id.toString());
                 });
 
-                if (!container.querySelector('.providers-container')) {
-                    container.appendChild(providersContainer);
-                }
+            if (availableProviders.length > 0) {
+                hasProviders = true;
+                const providersTitle = document.createElement('div');
+                providersTitle.className = 'platforms-title';
+                providersTitle.textContent = 'Disponível em:';
+                container.appendChild(providersTitle);
+
+                const providersContainer = document.createElement('div');
+                providersContainer.className = 'providers-container';
+
+                availableProviders.forEach(provider => {
+                    const providerInfo = priorityProviders[provider.provider_id];
+                    const providerItem = document.createElement('div');
+                    providerItem.className = 'provider-item';
+                    providerItem.innerHTML = `
+                        <img 
+                            src="${IMAGE_BASE_URL}${provider.logo_path}" 
+                            alt="${providerInfo.name}"
+                            class="provider-logo"
+                        />
+                        <span class="provider-name">${providerInfo.name}</span>
+                    `;
+                    providersContainer.appendChild(providerItem);
+                });
+
+                container.appendChild(providersContainer);
             }
         }
 
@@ -387,108 +424,135 @@ async function createStreamingSection(item, mediaType) {
 // Função para criar o card
 async function createCard(item, mediaType) {
     try {
-        console.log("Iniciando criação do card para:", item.title || item.name);
-        
+        // Container principal do card
         const card = document.createElement("div");
         card.classList.add("movie-series");
-        
+        card.dataset.id = item.id;
+        card.dataset.mediaType = mediaType;
+
+        // Container da imagem
         const imageContainer = document.createElement("div");
         imageContainer.classList.add("image-container");
         
+        // Imagem do poster
         const img = document.createElement("img");
         img.loading = "lazy";
-        if (item.poster_path) {
-            img.src = `${IMAGE_BASE_URL}${item.poster_path}`;
-            console.log("Imagem do poster:", img.src);
-        } else {
-            img.src = 'placeholder.jpg';
-            img.classList.add('no-poster');
-            console.log("Usando imagem placeholder");
-        }
+        img.src = item.poster_path 
+            ? `${IMAGE_BASE_URL}${item.poster_path}`
+            : 'placeholder.jpg';
         img.alt = item.title || item.name;
-        
-        img.onerror = function() {
-            console.log("Erro ao carregar imagem, usando placeholder");
-            this.src = 'placeholder.jpg';
-            this.classList.add('no-poster');
-        };
-        
         imageContainer.appendChild(img);
+
+        // Container das informações
+        const info = document.createElement("div");
+        info.classList.add("movie-info");
+
+        // Seção do título e metadados
+        const titleSection = document.createElement("div");
+        titleSection.classList.add("movie-title-section");
+
+        const title = document.createElement("h2");
+        title.classList.add("movie-title");
+        title.textContent = item.title || item.name;
+        titleSection.appendChild(title);
+
+        // Seção de metadados (avaliação e votos)
+        const metadata = document.createElement("div");
+        metadata.classList.add("movie-metadata");
+
+        // Avaliação
+        const rating = document.createElement("div");
+        rating.classList.add("rating-container");
+        const ratingValue = (item.vote_average * 10).toFixed(0);
+        const ratingClass = ratingValue >= 70 ? 'high' : ratingValue >= 50 ? 'medium' : 'low';
+        rating.innerHTML = `
+            <div class="rating rating-${ratingClass}">
+                <i class="fas fa-star"></i>
+                <span>${(item.vote_average).toFixed(1)}</span>
+                <span class="vote-count">(${item.vote_count.toLocaleString('pt-BR')} votos)</span>
+            </div>
+        `;
+        metadata.appendChild(rating);
+
+        // Data de lançamento
+        const releaseDate = new Date(item.release_date || item.first_air_date);
+        const dateContainer = document.createElement("div");
+        dateContainer.classList.add("release-date");
+        dateContainer.innerHTML = `
+            <i class="fas fa-calendar-alt"></i>
+            <span>${releaseDate.toLocaleDateString('pt-BR')}</span>
+        `;
+        metadata.appendChild(dateContainer);
+
+        // Gêneros
+        const genresContainer = document.createElement("div");
+        genresContainer.classList.add("genres-container");
         
-        // Busca e adiciona o trailer
+        if (item.genre_ids && item.genre_ids.length > 0) {
+            const genres = await getGenres(item.genre_ids, mediaType);
+            genres.slice(0, 3).forEach(genre => {
+                const genreTag = document.createElement("span");
+                genreTag.classList.add("genre-tag");
+                genreTag.textContent = genre;
+                genresContainer.appendChild(genreTag);
+            });
+        }
+
+        // Streaming
+        const streamingSection = await createStreamingSection(item, mediaType);
+
+        // Trailer
         const trailerKey = await fetchTrailer(mediaType, item.id);
         if (trailerKey) {
             const trailerButton = document.createElement("button");
             trailerButton.classList.add("trailer-button");
-            trailerButton.innerHTML = '<i class="fas fa-play"></i> Trailer';
+            trailerButton.setAttribute('aria-label', 'Assistir Trailer');
+            trailerButton.innerHTML = '<i class="fas fa-play"></i>';
             trailerButton.onclick = (e) => {
-                e.preventDefault();
-                window.open(`https://www.youtube.com/watch?v=${trailerKey}`, '_blank');
+                e.stopPropagation();
+                openTrailerModal(trailerKey);
             };
             imageContainer.appendChild(trailerButton);
         }
-        
-        const info = document.createElement("div");
-        info.classList.add("movie-info");
-        
-        const title = document.createElement("h2");
-        title.textContent = item.title || item.name;
-        
-        // Melhorando a exibição da nota
-        const rating = document.createElement("div");
-        rating.classList.add("rating");
-        const stars = Math.round(item.vote_average * 2) / 2; // Arredonda para 0.5 mais próximo
-        rating.innerHTML = `
-            <i class="fas fa-star"></i>
-            <span>${stars.toFixed(1)}</span>
-            <span class="vote-count">(${item.vote_count} votos)</span>
-        `;
-        
-        const date = document.createElement("p");
-        date.classList.add("date");
-        const releaseDate = new Date(item.release_date || item.first_air_date);
-        
-        // Se for um lançamento futuro, mostra quantos dias faltam
-        if (item.daysUntilRelease) {
-            date.classList.add("upcoming-date");
-            date.innerHTML = `<i class="fas fa-calendar"></i> ${
-                item.daysUntilRelease === 1 
-                    ? "Lança amanhã!"
-                    : `Faltam ${item.daysUntilRelease} dias`
-            }`;
-        } else {
-            date.innerHTML = `<i class="fas fa-calendar-alt"></i> ${releaseDate.toLocaleDateString('pt-BR')}`;
-        }
-        
-        info.appendChild(title);
-        info.appendChild(rating);
-        info.appendChild(date);
 
-        // Adiciona os gêneros
-        if (item.genre_ids && item.genre_ids.length > 0) {
-            const genres = await getGenres(item.genre_ids, mediaType);
-            const genreContainer = document.createElement("div");
-            genreContainer.classList.add("genre-container");
-            
-            genres.forEach(genre => {
-                const genreTag = document.createElement("span");
-                genreTag.classList.add("genre-tag");
-                genreTag.textContent = genre;
-                genreContainer.appendChild(genreTag);
-            });
-            
-            info.appendChild(genreContainer);
+        // Badge de novo lançamento
+        const daysSinceRelease = Math.floor((new Date() - releaseDate) / (1000 * 60 * 60 * 24));
+        if (daysSinceRelease >= -30 && daysSinceRelease <= 0) {
+            const newReleaseBadge = document.createElement('div');
+            newReleaseBadge.classList.add('new-release-badge');
+            newReleaseBadge.innerHTML = `
+                <i class="fas fa-certificate"></i>
+                <span>Novo!</span>
+            `;
+            titleSection.appendChild(newReleaseBadge);
         }
-        
-        // Adiciona as plataformas de streaming
-        const streamingSection = await createStreamingSection(item, mediaType);
+
+        // Montagem final do card
+        info.appendChild(titleSection);
+        info.appendChild(metadata);
+        info.appendChild(genresContainer);
         if (streamingSection) {
             info.appendChild(streamingSection);
         }
-        
+
         card.appendChild(imageContainer);
         card.appendChild(info);
-        
+
+        // Adiciona evento de clique para abrir modal de detalhes
+        card.addEventListener('click', async (e) => {
+            if (!e.target.closest('.trailer-button')) {
+                try {
+                    const response = await fetch(
+                        `${BASE_URL}/${mediaType}/${item.id}?api_key=${API_KEY}&language=pt-BR`
+                    );
+                    const itemDetails = await response.json();
+                    createDetailsModal(itemDetails, mediaType);
+                } catch (error) {
+                    console.error('Erro ao carregar detalhes:', error);
+                }
+            }
+        });
+
         return card;
     } catch (error) {
         console.error("Erro ao criar card:", error);
@@ -757,7 +821,6 @@ function createMovieSeriesCard(item) {
     
     const trailerButton = document.createElement('button');
     trailerButton.className = 'trailer-button';
-    trailerButton.innerHTML = '<i class="fas fa-play"></i>';
     trailerButton.setAttribute('aria-label', 'Ver trailer');
 
     const movieInfo = document.createElement('div');
@@ -885,3 +948,115 @@ function clearStorageOnLogout() {
 function validateInput(input) {
     return input.replace(/[<>]/g, '');
 }
+
+// Função para criar o modal de detalhes
+function createDetailsModal(item, mediaType) {
+    const modal = document.createElement('div');
+    modal.className = 'details-modal';
+    
+    const releaseDate = mediaType === 'movie' ? item.release_date : item.first_air_date;
+    const formattedDate = new Date(releaseDate).toLocaleDateString('pt-BR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+
+    const rating = (item.vote_average * 10).toFixed(0);
+    const ratingClass = rating >= 70 ? 'high' : rating >= 50 ? 'medium' : 'low';
+
+    modal.innerHTML = `
+        <div class="details-modal-content">
+            <button class="close-details">&times;</button>
+            <div class="details-header">
+                <img src="${IMAGE_BASE_URL}${item.poster_path}" 
+                     alt="${item.title || item.name}" 
+                     class="details-poster">
+                <div class="details-info">
+                    <h2 class="details-title">${item.title || item.name}</h2>
+                    <div class="details-metadata">
+                        <div class="rating rating-${ratingClass}">
+                            <i class="fas fa-star"></i>
+                            <span>${rating}%</span>
+                            <span class="vote-count">(${item.vote_count} votos)</span>
+                        </div>
+                        <div class="release-date">
+                            <i class="fas fa-calendar"></i>
+                            <span>${formattedDate}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="details-section">
+                <h3 class="details-section-title">Sinopse</h3>
+                <p>${item.overview || 'Sinopse não disponível.'}</p>
+            </div>
+
+            <div class="details-section">
+                <h3 class="details-section-title">Gêneros</h3>
+                <div class="details-genres">
+                    ${item.genres.map(genre => 
+                        `<span class="genre-tag">${genre.name}</span>`
+                    ).join('')}
+                </div>
+            </div>
+
+            <div class="details-platforms">
+                <h3 class="details-section-title">Onde Assistir</h3>
+                <div class="platforms-list" id="platforms-${item.id}">
+                    Carregando plataformas...
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Adicionar evento de fechar
+    modal.querySelector('.close-details').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    // Fechar ao clicar fora do modal
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+
+    // Carregar plataformas de streaming
+    fetchStreamingInfo(mediaType, item.id).then(providers => {
+        const platformsList = modal.querySelector(`#platforms-${item.id}`);
+        if (providers && providers.length > 0) {
+            platformsList.innerHTML = providers.map(provider => `
+                <div class="platform-item">
+                    <img src="${IMAGE_BASE_URL}${provider.logo_path}" 
+                         alt="${provider.provider_name}" 
+                         class="provider-logo">
+                    <span class="provider-name">${provider.provider_name}</span>
+                </div>
+            `).join('');
+        } else {
+            platformsList.innerHTML = 'Não disponível em streaming no momento.';
+        }
+    });
+
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Adicionar evento de clique nos cards
+document.querySelectorAll('.movie-series').forEach(card => {
+    card.addEventListener('click', async (e) => {
+        if (!e.target.closest('.trailer-button')) {
+            const itemId = card.dataset.id;
+            const mediaType = card.dataset.mediaType;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/${mediaType}/${itemId}?api_key=${API_KEY}&language=pt-BR`);
+                const itemDetails = await response.json();
+                createDetailsModal(itemDetails, mediaType);
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+            }
+        }
+    });
+});
