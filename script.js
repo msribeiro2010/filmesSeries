@@ -180,12 +180,7 @@ async function fetchItems() {
                         <div class="movie-header">
                             <div class="title-skeleton"></div>
                         </div>
-                        <div class="metadata-skeleton">
-                            <div class="rating-skeleton"></div>
-                            <div class="country-skeleton"></div>
-                        </div>
-                        <div class="date-skeleton"></div>
-                        <div class="genres-skeleton"></div>
+                        <div class="metadata-skeleton"></div>
                     </div>
                 `;
                 mainContainer.appendChild(skeleton);
@@ -193,27 +188,39 @@ async function fetchItems() {
         }
 
         let newItems = [];
-        const currentDate = new Date().toISOString().split('T')[0];
+        const currentYear = '2024-01-01'; // Define o ano mínimo como 2024
         
         // Configuração base para a API
         const baseParams = new URLSearchParams({
             api_key: API_KEY,
             language: 'pt-BR',
             'vote_count.gte': '50',
-            page: currentPage.toString()
+            page: currentPage.toString(),
+            region: 'BR'
         });
 
-        // Lógica para diferentes tipos de ordenação
+        // Lógica para diferentes tipos de ordenação e filtros
         if (currentSort === 'upcoming') {
-            newItems = await fetchUpcoming();
-        } else {
-            const requests = [];
+            // Lógica específica para lançamentos futuros
+            if (currentFilter === 'movie' || currentFilter === 'all') {
+                baseParams.append('primary_release_date.gte', currentYear);
+                const movieResponse = await fetch(`${BASE_URL}/movie/upcoming?${baseParams.toString()}`);
+                const movieData = await movieResponse.json();
+                newItems.push(...movieData.results.map(item => ({ ...item, media_type: 'movie' })));
+            }
             
-            // Adiciona parâmetros de ordenação
+            if (currentFilter === 'tv' || currentFilter === 'all') {
+                baseParams.append('first_air_date.gte', currentYear);
+                const tvResponse = await fetch(`${BASE_URL}/discover/tv?${baseParams.toString()}`);
+                const tvData = await tvResponse.json();
+                newItems.push(...tvData.results.map(item => ({ ...item, media_type: 'tv' })));
+            }
+        } else {
+            // Configuração dos parâmetros de ordenação
             switch(currentSort) {
                 case 'rating':
                     baseParams.append('sort_by', 'vote_average.desc');
-                    baseParams.append('vote_average.gte', '6');
+                    baseParams.append('vote_average.gte', '7');
                     break;
                 case 'popularity':
                     baseParams.append('sort_by', 'popularity.desc');
@@ -223,31 +230,43 @@ async function fetchItems() {
                     break;
             }
 
-            // Filtra por tipo de mídia
-            if (currentFilter === "all" || currentFilter === "movie") {
-                const movieUrl = `${BASE_URL}/discover/movie?${baseParams.toString()}`;
-                requests.push(
-                    fetch(movieUrl)
-                        .then(res => res.json())
-                        .then(data => data.results.map(item => ({ ...item, media_type: 'movie' })))
-                );
+            // Busca baseada no tipo de mídia
+            if (currentFilter === 'movie' || currentFilter === 'all') {
+                const movieParams = new URLSearchParams(baseParams);
+                movieParams.append('primary_release_date.gte', currentYear);
+                
+                const movieResponse = await fetch(`${BASE_URL}/discover/movie?${movieParams.toString()}`);
+                const movieData = await movieResponse.json();
+                newItems.push(...movieData.results
+                    .filter(movie => {
+                        const releaseDate = new Date(movie.release_date);
+                        return releaseDate.getFullYear() >= 2024;
+                    })
+                    .map(item => ({ ...item, media_type: 'movie' })));
             }
             
-            if (currentFilter === "all" || currentFilter === "tv") {
-                const tvUrl = `${BASE_URL}/discover/tv?${baseParams.toString()}`;
-                requests.push(
-                    fetch(tvUrl)
-                        .then(res => res.json())
-                        .then(data => data.results.map(item => ({ ...item, media_type: 'tv' })))
-                );
+            if (currentFilter === 'tv' || currentFilter === 'all') {
+                const tvParams = new URLSearchParams(baseParams);
+                tvParams.append('first_air_date.gte', currentYear);
+                
+                const tvResponse = await fetch(`${BASE_URL}/discover/tv?${tvParams.toString()}`);
+                const tvData = await tvResponse.json();
+                newItems.push(...tvData.results
+                    .filter(tv => {
+                        const firstAirDate = new Date(tv.first_air_date);
+                        return firstAirDate.getFullYear() >= 2024;
+                    })
+                    .map(item => ({ ...item, media_type: 'tv' })));
             }
-
-            const results = await Promise.all(requests);
-            newItems = results.flat();
         }
-        
-        console.log("Novos itens encontrados:", newItems.length);
-        
+
+        // Ordena os itens combinados
+        if (newItems.length > 0) {
+            newItems = sortItems(newItems, currentSort);
+        }
+
+        console.log(`Encontrados ${newItems.length} itens de 2024`);
+
         // Remove os skeleton loaders
         const skeletons = mainContainer.querySelectorAll('.skeleton');
         skeletons.forEach(skeleton => skeleton.remove());
@@ -260,8 +279,8 @@ async function fetchItems() {
             }
         }
 
-        // Incrementa a página se não for lançamentos futuros
-        if (currentSort !== 'upcoming') {
+        // Incrementa a página se houver mais itens
+        if (newItems.length > 0) {
             currentPage++;
         }
 
@@ -571,6 +590,8 @@ async function getGenres(genreIds, mediaType) {
 
 // Função para definir o filtro atual
 function setFilter(filter) {
+    if (currentFilter === filter) return; // Evita recarregar se o filtro for o mesmo
+    
     currentFilter = filter;
     currentPage = 1;
     allItems = [];
@@ -585,10 +606,11 @@ function setFilter(filter) {
         activeButton.classList.add("active");
     }
     
-    // Limpa o container antes de buscar novos itens
+    // Limpa o container e mostra loading state
     const mainContainer = document.getElementById("movies-series");
     if (mainContainer) {
         mainContainer.innerHTML = "";
+        // Adiciona skeleton loaders aqui se necessário
     }
     
     fetchItems();
@@ -596,8 +618,11 @@ function setFilter(filter) {
 
 // Função para definir a ordenação atual
 function setSort(sort) {
+    if (currentSort === sort) return; // Evita recarregar se a ordenação for a mesma
+    
     currentSort = sort;
     currentPage = 1;
+    allItems = [];
     
     // Atualiza visualmente os botões
     document.querySelectorAll('.sort-buttons button').forEach(button => {
@@ -613,7 +638,6 @@ function setSort(sort) {
     const mainContainer = document.getElementById("movies-series");
     if (mainContainer) {
         mainContainer.innerHTML = "";
-        allItems = [];
         fetchItems();
     }
 }
