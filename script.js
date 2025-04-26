@@ -437,8 +437,9 @@ async function createStreamingSection(item, mediaType) {
                             src="${IMAGE_BASE_URL}${provider.logo_path}" 
                             alt="${providerInfo.name}"
                             class="provider-logo"
+                            title="${providerInfo.name}"
+                            data-tooltip="${providerInfo.name}"
                         />
-                        <span class="provider-name">${providerInfo.name}</span>
                     `;
                     providersContainer.appendChild(providerItem);
                 });
