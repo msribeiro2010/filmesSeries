@@ -171,6 +171,28 @@ function setupEventListeners() {
             closeMenu();
         });
     });
+
+    // Accordion menu functionality
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const expanded = this.getAttribute('aria-expanded') === 'true';
+            // Fecha todos os painéis
+            document.querySelectorAll('.accordion-header').forEach(h => h.setAttribute('aria-expanded', 'false'));
+            document.querySelectorAll('.accordion-panel').forEach(panel => panel.setAttribute('hidden', ''));
+            // Abre o painel clicado se estava fechado
+            if (!expanded) {
+                this.setAttribute('aria-expanded', 'true');
+                const panel = document.getElementById(this.getAttribute('aria-controls'));
+                if (panel) panel.removeAttribute('hidden');
+            }
+        });
+    });
+    // Abre o primeiro painel por padrão
+    document.querySelectorAll('.accordion-header')[0]?.setAttribute('aria-expanded', 'true');
+    document.querySelectorAll('.accordion-panel')[0]?.removeAttribute('hidden');
+    // Fecha o segundo por padrão
+    document.querySelectorAll('.accordion-header')[1]?.setAttribute('aria-expanded', 'false');
+    document.querySelectorAll('.accordion-panel')[1]?.setAttribute('hidden', '');
 }
 
 // Função para buscar filmes e séries
