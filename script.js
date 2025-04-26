@@ -12,6 +12,10 @@ let allItems = [];
 let movieGenres = {};
 let tvGenres = {};
 
+// IDs dos gêneros a excluir e priorizar
+const EXCLUDED_GENRES = [16, 10751, 10762]; // Animation, Family, Kids
+const PREFERRED_GENRES = [18, 12, 53, 878, 9648, 28, 80, 99, 10752, 36]; // Drama, Aventura, Suspense, Sci-Fi, Mistério, Ação, Crime, Biografia, Guerra, História
+
 // Adicionar Intersection Observer para lazy loading
 const observerOptions = {
     root: null,
@@ -237,18 +241,8 @@ async function fetchItems() {
             }
         } else {
             // Configuração dos parâmetros de ordenação
-            switch(currentSort) {
-                case 'rating':
-                    baseParams.append('sort_by', 'vote_average.desc');
-                    baseParams.append('vote_average.gte', '7');
-                    break;
-                case 'popularity':
-                    baseParams.append('sort_by', 'popularity.desc');
-                    break;
-                case 'date':
-                    baseParams.append('sort_by', 'primary_release_date.desc,first_air_date.desc');
-                    break;
-            }
+            baseParams.append('sort_by', 'vote_average.desc');
+            baseParams.append('vote_average.gte', '7');
 
             // Busca baseada no tipo de mídia
             if (currentFilter === 'movie' || currentFilter === 'all') {
@@ -257,12 +251,17 @@ async function fetchItems() {
                 
                 const movieResponse = await fetch(`${BASE_URL}/discover/movie?${movieParams.toString()}`);
                 const movieData = await movieResponse.json();
-                newItems.push(...movieData.results
+                let filteredMovies = movieData.results
                     .filter(movie => {
                         const releaseDate = new Date(movie.release_date);
+                        // Excluir filmes infantis/animados
+                        if (movie.genre_ids && movie.genre_ids.some(id => EXCLUDED_GENRES.includes(id))) {
+                            return false;
+                        }
                         return releaseDate.getFullYear() >= 2024;
                     })
-                    .map(item => ({ ...item, media_type: 'movie' })));
+                    .map(item => ({ ...item, media_type: 'movie' }));
+                newItems.push(...filteredMovies);
             }
             
             if (currentFilter === 'tv' || currentFilter === 'all') {
@@ -271,18 +270,30 @@ async function fetchItems() {
                 
                 const tvResponse = await fetch(`${BASE_URL}/discover/tv?${tvParams.toString()}`);
                 const tvData = await tvResponse.json();
-                newItems.push(...tvData.results
+                let filteredTV = tvData.results
                     .filter(tv => {
                         const firstAirDate = new Date(tv.first_air_date);
+                        // Excluir animações/infantis
+                        if (tv.genre_ids && tv.genre_ids.some(id => EXCLUDED_GENRES.includes(id))) {
+                            return false;
+                        }
                         return firstAirDate.getFullYear() >= 2024;
                     })
-                    .map(item => ({ ...item, media_type: 'tv' })));
+                    .map(item => ({ ...item, media_type: 'tv' }));
+                newItems.push(...filteredTV);
             }
         }
 
-        // Ordena os itens combinados
-        if (newItems.length > 0) {
-            newItems = sortItems(newItems, currentSort);
+        // Priorizar gêneros preferidos apenas para rating
+        if (currentSort === 'rating') {
+            const preferred = newItems.filter(item => item.genre_ids && item.genre_ids.some(id => PREFERRED_GENRES.includes(id)));
+            const others = newItems.filter(item => !item.genre_ids || !item.genre_ids.some(id => PREFERRED_GENRES.includes(id)));
+            preferred.sort((a, b) => b.vote_average - a.vote_average);
+            others.sort((a, b) => b.vote_average - a.vote_average);
+            newItems = [...preferred, ...others];
+        } else if (newItems.length > 0) {
+            // Para todos os outros filtros, ordenar por nota decrescente
+            newItems.sort((a, b) => b.vote_average - a.vote_average);
         }
 
         console.log(`Encontrados ${newItems.length} itens de 2024`);
@@ -315,47 +326,8 @@ async function fetchItems() {
 
 // Função para ordenar os itens
 function sortItems(items, sortType) {
-    const currentDate = new Date();
-    
-    // Função auxiliar para calcular dias de diferença
-    function getDaysDifference(date) {
-        const itemDate = new Date(date);
-        return Math.floor((itemDate - currentDate) / (1000 * 60 * 60 * 24));
-    }
-
-    // Função para verificar se é lançamento atual (últimos 30 dias)
-    function isCurrentRelease(date) {
-        if (!date) return false;
-        const days = getDaysDifference(date);
-        return days >= -30 && days <= 0; // Últimos 30 dias
-    }
-
-    return items.sort((a, b) => {
-        const dateA = a.release_date || a.first_air_date;
-        const dateB = b.release_date || b.first_air_date;
-        
-        // Verifica se são lançamentos atuais
-        const isACurrentRelease = isCurrentRelease(dateA);
-        const isBCurrentRelease = isCurrentRelease(dateB);
-
-        // Prioriza lançamentos atuais
-        if (isACurrentRelease && !isBCurrentRelease) return -1;
-        if (!isACurrentRelease && isBCurrentRelease) return 1;
-
-        // Se ambos são ou não são lançamentos atuais, aplica a ordenação normal
-        if (sortType === 'date' || sortType === 'combined') {
-            return new Date(dateB) - new Date(dateA);
-        } else if (sortType === 'rating') {
-            return b.vote_average - a.vote_average;
-        } else if (sortType === 'popularity') {
-            return b.popularity - a.popularity;
-        } else if (sortType === 'upcoming') {
-            const daysUntilA = getDaysDifference(dateA);
-            const daysUntilB = getDaysDifference(dateB);
-            return daysUntilA - daysUntilB;
-        }
-        return 0;
-    });
+    // Todos os filtros agora ordenam por nota decrescente
+    return items.sort((a, b) => b.vote_average - a.vote_average);
 }
 
 // Função para buscar informações de streaming
@@ -484,64 +456,6 @@ async function createCard(item, mediaType) {
         img.alt = item.title || item.name;
         imageContainer.appendChild(img);
 
-        // Container das informações
-        const info = document.createElement("div");
-        info.classList.add("movie-info");
-
-        // Seção do título e metadados
-        const titleSection = document.createElement("div");
-        titleSection.classList.add("movie-title-section");
-
-        const title = document.createElement("h2");
-        title.classList.add("movie-title");
-        title.textContent = item.title || item.name;
-        titleSection.appendChild(title);
-
-        // Seção de metadados (avaliação e votos)
-        const metadata = document.createElement("div");
-        metadata.classList.add("movie-metadata");
-
-        // Avaliação
-        const rating = document.createElement("div");
-        rating.classList.add("rating-container");
-        const ratingValue = (item.vote_average * 10).toFixed(0);
-        const ratingClass = ratingValue >= 70 ? 'high' : ratingValue >= 50 ? 'medium' : 'low';
-        rating.innerHTML = `
-            <div class="rating rating-${ratingClass}">
-                <i class="fas fa-star"></i>
-                <span>${(item.vote_average).toFixed(1)}</span>
-                <span class="vote-count">(${item.vote_count.toLocaleString('pt-BR')} votos)</span>
-            </div>
-        `;
-        metadata.appendChild(rating);
-
-        // Data de lançamento
-        const releaseDate = new Date(item.release_date || item.first_air_date);
-        const dateContainer = document.createElement("div");
-        dateContainer.classList.add("release-date");
-        dateContainer.innerHTML = `
-            <i class="fas fa-calendar-alt"></i>
-            <span>${releaseDate.toLocaleDateString('pt-BR')}</span>
-        `;
-        metadata.appendChild(dateContainer);
-
-        // Gêneros
-        const genresContainer = document.createElement("div");
-        genresContainer.classList.add("genres-container");
-        
-        if (item.genre_ids && item.genre_ids.length > 0) {
-            const genres = await getGenres(item.genre_ids, mediaType);
-            genres.slice(0, 3).forEach(genre => {
-                const genreTag = document.createElement("span");
-                genreTag.classList.add("genre-tag");
-                genreTag.textContent = genre;
-                genresContainer.appendChild(genreTag);
-            });
-        }
-
-        // Streaming
-        const streamingSection = await createStreamingSection(item, mediaType);
-
         // Trailer
         const trailerKey = await fetchTrailer(mediaType, item.id);
         if (trailerKey) {
@@ -556,22 +470,79 @@ async function createCard(item, mediaType) {
             imageContainer.appendChild(trailerButton);
         }
 
-        // Badge de novo lançamento
-        const daysSinceRelease = Math.floor((new Date() - releaseDate) / (1000 * 60 * 60 * 24));
-        if (daysSinceRelease >= -30 && daysSinceRelease <= 0) {
-            const newReleaseBadge = document.createElement('div');
-            newReleaseBadge.classList.add('new-release-badge');
-            newReleaseBadge.innerHTML = `
-                <i class="fas fa-certificate"></i>
-                <span>Novo!</span>
-            `;
-            titleSection.appendChild(newReleaseBadge);
+        // Container das informações
+        const info = document.createElement("div");
+        info.classList.add("movie-info");
+
+        // Seção do título e metadados
+        const titleSection = document.createElement("div");
+        titleSection.classList.add("movie-title-section");
+
+        // Título + ano
+        const titleRow = document.createElement("div");
+        titleRow.style.display = 'flex';
+        titleRow.style.alignItems = 'center';
+        titleRow.style.gap = '0.5rem';
+        const title = document.createElement("h2");
+        title.classList.add("movie-title");
+        title.textContent = item.title || item.name;
+        titleRow.appendChild(title);
+        // Ano
+        const year = (item.release_date || item.first_air_date) ? new Date(item.release_date || item.first_air_date).getFullYear() : '';
+        if (year) {
+            const yearSpan = document.createElement('span');
+            yearSpan.className = 'release-year';
+            yearSpan.textContent = year;
+            titleRow.appendChild(yearSpan);
         }
+        titleSection.appendChild(titleRow);
+
+        // Seção de metadados (badge de nota)
+        const metadata = document.createElement("div");
+        metadata.classList.add("movie-metadata");
+        // Badge de nota
+        const ratingValue = (item.vote_average).toFixed(1);
+        const ratingBadge = document.createElement('div');
+        ratingBadge.className = 'rating-badge';
+        ratingBadge.innerHTML = `<i class='fas fa-star'></i> ${ratingValue}`;
+        metadata.appendChild(ratingBadge);
+        // Votos
+        const voteCount = document.createElement('span');
+        voteCount.className = 'vote-count';
+        voteCount.style.color = '#fff8';
+        voteCount.style.fontSize = '0.92em';
+        voteCount.textContent = `(${item.vote_count.toLocaleString('pt-BR')} votos)`;
+        metadata.appendChild(voteCount);
+        titleSection.appendChild(metadata);
+
+        // Gêneros
+        const genresContainer = document.createElement("div");
+        genresContainer.classList.add("genres-container");
+        if (item.genre_ids && item.genre_ids.length > 0) {
+            const genres = await getGenres(item.genre_ids, mediaType);
+            genres.slice(0, 3).forEach(genre => {
+                const genreTag = document.createElement("span");
+                genreTag.classList.add("genre-tag");
+                genreTag.textContent = genre;
+                genresContainer.appendChild(genreTag);
+            });
+        }
+
+        // Sinopse curta
+        if (item.overview) {
+            const synopsis = document.createElement('div');
+            synopsis.className = 'movie-synopsis';
+            synopsis.textContent = item.overview;
+            info.appendChild(synopsis);
+        }
+
+        // Streaming
+        const streamingSection = await createStreamingSection(item, mediaType);
 
         // Montagem final do card
         info.appendChild(titleSection);
-        info.appendChild(metadata);
         info.appendChild(genresContainer);
+        // Sinopse já foi adicionada acima
         if (streamingSection) {
             info.appendChild(streamingSection);
         }
