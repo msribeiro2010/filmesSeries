@@ -12,47 +12,47 @@
 </head>
 <body>
     <div class="container">
-        <button class="hamburger" id="hamburger">
+        <button class="hamburger" id="hamburger" title="Abrir menu de navegação" aria-label="Abrir menu de navegação" tabindex="0">
             <span></span>
             <span></span>
             <span></span>
         </button>
 
-        <button class="theme-toggle" aria-label="Alternar tema escuro">
+        <button class="theme-toggle" aria-label="Alternar tema escuro" tabindex="0">
             <i class="fas fa-moon"></i>
         </button>
 
         <div class="nav-content">
             <div class="filter-section">
                 <div class="filter-buttons">
-                    <button id="filter-all" class="active">
+                    <button id="filter-all" class="active" aria-label="Mostrar todos" tabindex="0">
                         <i class="fas fa-border-all"></i>
                         Todos
                     </button>
-                    <button id="filter-movie">
+                    <button id="filter-movie" aria-label="Mostrar apenas filmes" tabindex="0">
                         <i class="fas fa-film"></i>
                         Filmes
                     </button>
-                    <button id="filter-tv">
+                    <button id="filter-tv" aria-label="Mostrar apenas séries" tabindex="0">
                         <i class="fas fa-tv"></i>
                         Séries
                     </button>
                 </div>
                 
                 <div class="sort-buttons">
-                    <button id="sort-rating" class="active">
+                    <button id="sort-rating" class="active" aria-label="Ordenar por melhor avaliados" tabindex="0">
                         <i class="fas fa-star"></i>
                         Melhor Avaliados
                     </button>
-                    <button id="sort-popularity">
+                    <button id="sort-popularity" aria-label="Ordenar por mais populares" tabindex="0">
                         <i class="fas fa-fire"></i>
                         Mais Populares
                     </button>
-                    <button id="sort-date">
+                    <button id="sort-date" aria-label="Ordenar por mais recentes" tabindex="0">
                         <i class="fas fa-calendar-alt"></i>
                         Mais Recentes
                     </button>
-                    <button id="sort-upcoming">
+                    <button id="sort-upcoming" aria-label="Ordenar por lançamentos futuros" tabindex="0">
                         <i class="fas fa-calendar-plus"></i>
                         Lançamentos Futuros
                     </button>
@@ -129,8 +129,8 @@
             </div>
             
             <div class="button-container">
-                <button id="load-more">Carregar Mais</button>
-                <button id="back-to-top">Voltar ao Início</button>
+                <button id="load-more" aria-label="Carregar mais resultados" tabindex="0">Carregar Mais</button>
+                <button id="back-to-top" aria-label="Voltar ao início" tabindex="0">Voltar ao Início</button>
             </div>
         </main>
 
@@ -139,9 +139,9 @@
         </footer>
     </div>
 
-    <div id="trailer-modal" class="modal">
+    <div id="trailer-modal" class="modal" role="dialog" aria-modal="true" aria-label="Trailer">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
+            <span class="close-modal" aria-label="Fechar modal" tabindex="0">&times;</span>
             <div id="trailer-container"></div>
         </div>
     </div>

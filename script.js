@@ -1113,3 +1113,57 @@ document.querySelectorAll('.movie-series').forEach(card => {
         }
     });
 });
+
+// Scroll suave para o botão 'Voltar ao Início'
+document.getElementById('back-to-top')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Melhorias no menu mobile
+const hamburger = document.getElementById('hamburger');
+const navContent = document.querySelector('.nav-content');
+const navOverlay = document.querySelector('.nav-overlay');
+const body = document.body;
+
+function closeMenu() {
+    hamburger?.classList.remove('active');
+    navContent?.classList.remove('active');
+    navOverlay?.classList.remove('active');
+    body.style.overflow = '';
+}
+
+function openMenu() {
+    hamburger?.classList.add('active');
+    navContent?.classList.add('active');
+    navOverlay?.classList.add('active');
+    body.style.overflow = 'hidden';
+    // Foco no primeiro botão do menu
+    setTimeout(() => {
+        const firstBtn = navContent?.querySelector('button');
+        firstBtn?.focus();
+    }, 100);
+}
+
+hamburger?.addEventListener('click', function(e) {
+    e.preventDefault();
+    if (navContent?.classList.contains('active')) {
+        closeMenu();
+    } else {
+        openMenu();
+    }
+});
+
+navOverlay?.addEventListener('click', closeMenu);
+
+// Fecha o menu ao clicar em qualquer botão do menu
+navContent?.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', closeMenu);
+});
+
+// Fecha o menu ao pressionar ESC
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeMenu();
+    }
+});
