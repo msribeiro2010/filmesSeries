@@ -3479,3 +3479,11 @@ button:focus-visible,
     }
 }
 
+@media (max-width: 768px) {
+    // ... existing code ...
+    #back-to-top,
+    #load-more {
+        display: none !important;
+    }
+}
+
