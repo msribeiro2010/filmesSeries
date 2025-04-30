@@ -137,6 +137,16 @@ function setupEventListeners() {
         }
     });
 
+    // Botão de carregar mais
+    const loadMoreButton = document.getElementById('load-more');
+    if (loadMoreButton) {
+        loadMoreButton.addEventListener('click', () => {
+            if (!loading) {
+                fetchItems();
+            }
+        });
+    }
+
     // Menu móvel
     const body = document.body;
     const overlay = document.querySelector('.nav-overlay') || createOverlay();
