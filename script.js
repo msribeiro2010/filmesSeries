@@ -132,12 +132,12 @@ function setupEventListeners() {
 
     // Scroll infinito
     window.addEventListener('scroll', () => {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000 && !loading) {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800 && !loading) {
             fetchItems();
         }
     });
 
-    // Botão de carregar mais
+    // Botão de carregar mais (apenas para desktop)
     const loadMoreButton = document.getElementById('load-more');
     if (loadMoreButton) {
         loadMoreButton.addEventListener('click', () => {

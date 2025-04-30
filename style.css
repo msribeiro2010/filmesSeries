@@ -2061,3 +2061,13 @@ main {
     .header {
         padding-top: env(safe-area-inset-top);
     }
+}
+
+/* Ocultar botões flutuantes em dispositivos móveis */
+@media (max-width: 768px) {
+    #back-to-top,
+    #load-more,
+    .button-container {
+        display: none !important;
+    }
+}
