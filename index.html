@@ -1,162 +1,202 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filmes e Séries</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <meta name="description" content="Descubra filmes e séries populares, com informações sobre streaming e trailers">
-    <link rel="preconnect" href="https://api.themoviedb.org">
-    <link rel="preconnect" href="https://image.tmdb.org">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Filmes & Séries</title>
+  <meta name="description" content="Descubra filmes e séries populares, com informações sobre streaming e trailers" />
+  <link rel="preconnect" href="https://api.themoviedb.org" />
+  <link rel="preconnect" href="https://image.tmdb.org" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-KNy+YEkZcIwF+qZcCk3/Na7kF8XowgYMbZB4W0IUNQmzcCzo5HsVqLXvI8rMQeTOpX1ae8tSTuZxHIl3Bf8Nlg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .filters {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: #444;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .filter-btn.active, .filter-btn:focus {
+      background: #ff9800;
+      color: #222;
+    }
+    .filter-select {
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <button class="hamburger" id="hamburger" title="Abrir menu de navegação" aria-label="Abrir menu de navegação" tabindex="0">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
+  <header class="site-header">
+    <button class="hamburger" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+      <span></span><span></span><span></span>
+    </button>
+    <h1 class="logo">🎬 Filmes & Séries</h1>
+    <button class="theme-toggle" aria-label="Alternar tema">
+      <i class="fas fa-moon"></i>
+    </button>
+  </header>
 
-        <button class="theme-toggle" aria-label="Alternar tema escuro" tabindex="0">
-            <i class="fas fa-moon"></i>
-        </button>
-
-        <div class="nav-content">
-            <div class="filter-section">
-                <div class="accordion">
-                    <div class="accordion-item">
-                        <button class="accordion-header" aria-expanded="true" aria-controls="accordion-filtros">Filtros <i class="fas fa-chevron-down"></i></button>
-                        <div class="accordion-panel" id="accordion-filtros">
-                            <div class="filter-buttons">
-                                <button id="filter-all" class="active" aria-label="Mostrar todos" tabindex="0">
-                                    <i class="fas fa-border-all"></i>
-                                    Todos
-                                </button>
-                                <button id="filter-movie" aria-label="Mostrar apenas filmes" tabindex="0">
-                                    <i class="fas fa-film"></i>
-                                    Filmes
-                                </button>
-                                <button id="filter-tv" aria-label="Mostrar apenas séries" tabindex="0">
-                                    <i class="fas fa-tv"></i>
-                                    Séries
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <button class="accordion-header" aria-expanded="true" aria-controls="accordion-ordenacao">Ordenação <i class="fas fa-chevron-down"></i></button>
-                        <div class="accordion-panel" id="accordion-ordenacao">
-                            <div class="sort-buttons">
-                                <button id="sort-rating" class="active" aria-label="Ordenar por melhor avaliados" tabindex="0">
-                                    <i class="fas fa-star"></i>
-                                    Melhor Avaliados
-                                </button>
-                                <button id="sort-popularity" aria-label="Ordenar por mais populares" tabindex="0">
-                                    <i class="fas fa-fire"></i>
-                                    Mais Populares
-                                </button>
-                                <button id="sort-date" aria-label="Ordenar por mais recentes" tabindex="0">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Mais Recentes
-                                </button>
-                                <button id="sort-upcoming" aria-label="Ordenar por lançamentos futuros" tabindex="0">
-                                    <i class="fas fa-calendar-plus"></i>
-                                    Lançamentos Futuros
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  <nav id="main-nav" class="main-nav" hidden>
+    <!-- Filtros e Ordenação -->
+    <div class="filter-section">
+      <div class="accordion">
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="true" aria-controls="accordion-filtros">
+            Filtros <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="accordion-panel" id="accordion-filtros">
+            <div class="filter-buttons">
+              <button data-filter="all" class="active">Todos</button>
+              <button data-filter="movie">Filmes</button>
+              <button data-filter="tv">Séries</button>
             </div>
+          </div>
         </div>
-
-        <div class="nav-overlay"></div>
-        
-        <main>
-            <div id="movies-series" class="movies-series-grid">
-                <div class="movie-series">
-                    <div class="image-container">
-                        <img src="" alt="">
-                        <button class="trailer-button" aria-label="Ver trailer">
-                            <i class="fas fa-play"></i>
-                        </button>
-                    </div>
-                    <div class="movie-info">
-                        <div class="movie-header">
-                            <h2 class="movie-title"></h2>
-                            <div class="movie-metadata">
-                                <div class="rating">
-                                    <i class="fas fa-star"></i>
-                                    <span class="rating-value"></span>
-                                    <span class="vote-count"></span>
-                                </div>
-                                <div class="country">
-                                    <i class="fas fa-globe"></i>
-                                    <span class="country-name"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="date-container">
-                            <div class="release-date">
-                                <i class="fas fa-calendar"></i>
-                                <span class="date-value"></span>
-                            </div>
-                        </div>
-                        <div class="genres-container"></div>
-                        <div class="platforms-section">
-                            <div class="platforms-title">Disponível em:</div>
-                            <div class="platforms-list"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Skeleton loading -->
-                <div class="movie-series skeleton">
-                    <div class="image-container">
-                        <div class="skeleton-img"></div>
-                    </div>
-                    <div class="movie-info">
-                        <div class="movie-header">
-                            <div class="title-skeleton"></div>
-                        </div>
-                        <div class="metadata-skeleton">
-                            <div class="rating-skeleton"></div>
-                            <div class="country-skeleton"></div>
-                        </div>
-                        <div class="date-skeleton"></div>
-                        <div class="genres-skeleton">
-                            <div class="genre-tag-skeleton"></div>
-                            <div class="genre-tag-skeleton"></div>
-                        </div>
-                        <div class="platforms-skeleton"></div>
-                    </div>
-                </div>
-                <!-- Repetir skeleton conforme necessário -->
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false" aria-controls="accordion-ordenacao">
+            Ordenação <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="accordion-panel" id="accordion-ordenacao" hidden>
+            <div class="sort-buttons">
+              <button data-sort="rating" class="active">Melhor Avaliados</button>
+              <button data-sort="popularity">Mais Populares</button>
+              <button data-sort="date">Mais Recentes</button>
+              <button data-sort="upcoming">Lançamentos Futuros</button>
             </div>
-            
-            <div id="spinner" class="spinner" style="display: none;">
-                <div class="loading"></div>
-            </div>
-            
-            <div class="button-container">
-                <button id="load-more" aria-label="Carregar mais resultados" tabindex="0">Carregar Mais</button>
-                <button id="back-to-top" aria-label="Voltar ao início" tabindex="0">Voltar ao Início</button>
-            </div>
-        </main>
-
-        <footer>
-            <p>Desenvolvido por <a href="https://github.com/msribeiro2010" target="_blank" rel="noopener noreferrer">Marcelo Ribeiro</a></p>
-        </footer>
-    </div>
-
-    <div id="trailer-modal" class="modal" role="dialog" aria-modal="true" aria-label="Trailer">
-        <div class="modal-content">
-            <span class="close-modal" aria-label="Fechar modal" tabindex="0">&times;</span>
-            <div id="trailer-container"></div>
+          </div>
         </div>
+      </div>
     </div>
+  </nav>
 
-    <script src="script.js"></script>
+  <div class="nav-overlay"></div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <button id="type-movie" class="filter-btn">Filmes</button>
+    <button id="type-tv" class="filter-btn">Séries</button>
+    <select id="genre-filter" class="filter-select" title="Filtrar por gênero">
+      <option value="">Todos os Gêneros</option>
+    </select>
+  </div>
+
+  <main class="content" id="movies-series">
+    <!-- Os cards de filmes e séries serão inseridos pelo script.js -->
+  </main>
+
+  <footer class="site-footer">
+    Desenvolvido por
+    <a href="https://github.com/msribeiro2010" target="_blank" rel="noopener noreferrer">Marcelo Ribeiro</a>
+  </footer>
+
+  <script src="script.js"></script>
+
+  <!-- Modal de detalhes (inicialmente oculto, será preenchido pelo JS) -->
+  <div id="details-modal" style="display:none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Fechar">&times;</button>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+
+  <style>
+    #details-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      background: rgba(0,0,0,0.7);
+      transition: opacity 0.2s;
+    }
+    #details-modal.show {
+      display: flex;
+      opacity: 1;
+    }
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+    }
+    .modal-content {
+      position: relative;
+      background: #222;
+      color: #fff;
+      border-radius: 8px;
+      max-width: 700px;
+      width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 2;
+      padding: 2rem 1rem 1rem 1rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 2rem;
+      cursor: pointer;
+      z-index: 3;
+    }
+    .modal-body {
+      display: flex;
+      flex-direction: row;
+      gap: 1.5rem;
+      align-items: flex-start;
+      width: 100%;
+    }
+    .modal-poster {
+      width: 180px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+    .modal-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .modal-info h2 {
+      margin-top: 0;
+    }
+    .modal-trailer {
+      margin-top: 1rem;
+    }
+    @media (max-width: 600px) {
+      .modal-body {
+        flex-direction: column;
+        align-items: center;
+      }
+      .modal-poster {
+        width: 100%;
+        max-width: 250px;
+      }
+    }
+  </style>
 </body>
 </html>
