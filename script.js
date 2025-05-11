@@ -84,7 +84,16 @@ function fetchGenres(type = 'movie') {
 // --- NOVO: Função para buscar filmes ou séries populares com filtro de gênero e ordenação por melhores avaliados ---
 function fetchPopular(type = 'movie', genreId = null) {
   const container = document.getElementById('movies-series');
-  container.innerHTML = '';
+  
+  // Adicionar indicador de carregamento
+  container.innerHTML = `
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Carregando ${type === 'movie' ? 'filmes' : 'séries'}...</p>
+    </div>
+  `;
+  
+  // Preparar URL com filtros
   let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=100`;
   if (genreId) url += `&with_genres=${genreId}`;
   if (type === 'movie') {
@@ -92,35 +101,101 @@ function fetchPopular(type = 'movie', genreId = null) {
   } else {
     url += `&first_air_date.gte=2024-01-01`;
   }
-  fetch(url)
+  
+  // Buscar gêneros para exibir o principal em cada card
+  let genresPromise = fetch(`${BASE_URL}/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`)
     .then(res => res.json())
-    .then(data => {
-      data.results.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'movie-series card-modern';
-        card.innerHTML = `
-          <div class="image-container">
-            <img src="${IMAGE_BASE_URL}${item.poster_path}" alt="${item.title || item.name}" class="card-poster" />
-            <button class="trailer-button" title="Ver trailer"><i class="fas fa-play"></i></button>
-            <div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>
-          </div>
-          <div class="movie-info">
-            <h2 class="movie-title">${item.title || item.name}</h2>
-            <span class="release-year">${(item.release_date || item.first_air_date || '').slice(0,4)}</span>
-          </div>
+    .then(data => data.genres || []);
+  
+  // Buscar títulos
+  let titlesPromise = fetch(url)
+    .then(res => res.json())
+    .then(data => data.results || []);
+  
+  // Processar ambas as promessas
+  Promise.all([titlesPromise, genresPromise])
+    .then(([titles, genres]) => {
+      // Limpar container
+      container.innerHTML = '';
+      
+      // Criar fragmento para melhor performance
+      const fragment = document.createDocumentFragment();
+      
+      // Verificar se há resultados
+      if (titles.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.innerHTML = `
+          <i class="fas fa-search"></i>
+          <p>Nenhum ${type === 'movie' ? 'filme' : 'série'} encontrado com os filtros atuais.</p>
         `;
-        // Clicar no card abre detalhes, clicar no botão de trailer abre modal focando no trailer
-        card.addEventListener('click', (e) => {
-          if (e.target.closest('.trailer-button')) {
-            openDetailsModal(type, item.id, true); // true = focar trailer
-          } else {
-            openDetailsModal(type, item.id, false);
+        fragment.appendChild(noResults);
+      } else {
+        // Processar cada título
+        titles.forEach(item => {
+          // Encontrar gênero principal
+          let mainGenre = '';
+          if (item.genre_ids && item.genre_ids.length > 0) {
+            const genreObj = genres.find(g => g.id === item.genre_ids[0]);
+            mainGenre = genreObj ? genreObj.name : '';
           }
+          
+          // Criar card com classe para animação
+          const card = document.createElement('div');
+          card.className = 'movie-series card-modern card-fade-in';
+          
+          // Verificar se há poster
+          const posterPath = item.poster_path 
+            ? `${IMAGE_BASE_URL}${item.poster_path}` 
+            : 'https://via.placeholder.com/500x750?text=Sem+Imagem';
+          
+          card.innerHTML = `
+            <div class="image-container">
+              <img src="${posterPath}" alt="${item.title || item.name}" class="card-poster" 
+                   onerror="this.src='https://via.placeholder.com/500x750?text=Erro+ao+Carregar';" />
+              <button class="trailer-button" title="Ver trailer"><i class="fas fa-play"></i></button>
+              <div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>
+            </div>
+            <div class="movie-info">
+              <h2 class="movie-title">${item.title || item.name}</h2>
+              <div class="movie-details">
+                <span class="release-year">${(item.release_date || item.first_air_date || '').slice(0,4)}</span>
+                ${mainGenre ? `<span class="genre-tag">${mainGenre}</span>` : ''}
+              </div>
+            </div>
+          `;
+          
+          // Clicar no card abre detalhes, clicar no botão de trailer abre modal focando no trailer
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('.trailer-button')) {
+              openDetailsModal(type, item.id, true); // true = focar trailer
+            } else {
+              openDetailsModal(type, item.id, false);
+            }
+          });
+          
+          // Adicionar ao fragmento
+          fragment.appendChild(card);
+          
+          // Adicionar efeito de entrada com delay progressivo
+          setTimeout(() => {
+            card.classList.add('show');
+          }, 50 * fragment.childElementCount);
         });
-        container.appendChild(card);
-      });
+      }
+      
+      // Adicionar fragmento ao container
+      container.appendChild(fragment);
     })
-    .catch(err => console.error('Erro ao buscar filmes/séries:', err));
+    .catch(err => {
+      console.error('Erro ao buscar filmes/séries:', err);
+      container.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Ocorreu um erro ao carregar os dados. Tente novamente mais tarde.</p>
+        </div>
+      `;
+    });
 }
 
 // --- NOVO: Função para buscar detalhes, trailer e plataformas de streaming e abrir modal ---
@@ -209,9 +284,21 @@ function closeModal() {
 
 // --- NOVO: Função para lidar com mudança de tipo (filme/série) ---
 function handleTypeChange(type) {
+  // Atualizar botões de tipo
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `type-${type}`);
+  });
+  
   currentType = type;
   currentGenre = null;
   document.getElementById('genre-filter').value = '';
+  
+  // Atualizar título da seção
+  const sectionTitle = document.querySelector('.section-title');
+  if (sectionTitle) {
+    sectionTitle.textContent = type === 'movie' ? 'Filmes Populares' : 'Séries Populares';
+  }
+  
   fetchGenres(type);
   fetchPopular(type);
 }
