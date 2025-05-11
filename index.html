@@ -40,6 +40,17 @@
       border-radius: 4px;
       border: 1px solid #ccc;
     }
+    .release-badge {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      z-index: 2;
+    }
   </style>
 </head>
 <body>
@@ -92,6 +103,7 @@
   <div class="filters">
     <button id="type-movie" class="filter-btn type-btn active">Filmes</button>
     <button id="type-tv" class="filter-btn type-btn">Séries</button>
+    <button id="type-releases" class="filter-btn release-btn">Lançamentos</button>
     <select id="genre-filter" class="filter-select" title="Filtrar por gênero">
       <option value="">Todos os Gêneros</option>
     </select>
