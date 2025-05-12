@@ -51,6 +51,14 @@
       font-size: 0.8rem;
       z-index: 2;
     }
+    .premiere-badge {
+      background: rgba(0, 128, 0, 0.8);
+      color: white;
+    }
+    .upcoming-badge {
+      background: rgba(128, 0, 128, 0.8);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -104,6 +112,8 @@
     <button id="type-movie" class="filter-btn type-btn active">Filmes</button>
     <button id="type-tv" class="filter-btn type-btn">Séries</button>
     <button id="type-releases" class="filter-btn release-btn">Lançamentos</button>
+    <button id="type-premieres" class="filter-btn release-btn">Estreias</button>
+    <button id="type-upcoming" class="filter-btn release-btn">Em Breve</button>
     <select id="genre-filter" class="filter-select" title="Filtrar por gênero">
       <option value="">Todos os Gêneros</option>
     </select>

@@ -5,7 +5,7 @@ const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 // --- NOVO: Elementos e variáveis globais para filtros ---
 let currentType = 'movie'; // 'movie' ou 'tv'
 let currentGenre = null;
-let isReleaseMode = false; // Controla se estamos no modo de lançamentos
+let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
 
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.querySelector('.hamburger');
@@ -47,8 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('type-movie').addEventListener('click', () => handleTypeChange('movie'));
   document.getElementById('type-tv').addEventListener('click', () => handleTypeChange('tv'));
   
-  // --- NOVO: Botão de lançamentos ---
-  document.getElementById('type-releases').addEventListener('click', handleReleasesMode);
+  // --- NOVO: Botões de categorias especiais ---
+  document.getElementById('type-releases').addEventListener('click', () => handleSpecialMode('releases'));
+  document.getElementById('type-premieres').addEventListener('click', () => handleSpecialMode('premieres'));
+  document.getElementById('type-upcoming').addEventListener('click', () => handleSpecialMode('upcoming'));
 
   // --- NOVO: Filtro de gênero ---
   document.getElementById('genre-filter').addEventListener('change', (e) => handleGenreChange(e.target.value));
@@ -293,12 +295,14 @@ function handleTypeChange(type) {
     btn.classList.toggle('active', btn.id === `type-${type}`);
   });
   
-  // Desativar botão de lançamentos
-  document.getElementById('type-releases').classList.remove('active');
+  // Desativar todos os botões de categorias especiais
+  document.querySelectorAll('.release-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
   
   currentType = type;
   currentGenre = null;
-  isReleaseMode = false;
+  currentMode = 'default';
   document.getElementById('genre-filter').value = '';
   
   // Atualizar título da seção
@@ -315,30 +319,66 @@ function handleTypeChange(type) {
 function handleGenreChange(genreId) {
   currentGenre = genreId || null;
   
-  if (isReleaseMode) {
-    fetchReleases(currentType, currentGenre);
-  } else {
-    fetchPopular(currentType, currentGenre);
+  switch(currentMode) {
+    case 'releases':
+      fetchReleases(currentType, currentGenre);
+      break;
+    case 'premieres':
+      fetchPremieres(currentType, currentGenre);
+      break;
+    case 'upcoming':
+      fetchUpcoming(currentType, currentGenre);
+      break;
+    default:
+      fetchPopular(currentType, currentGenre);
   }
 }
 
-// --- NOVO: Função para lidar com modo de lançamentos ---
-function handleReleasesMode() {
-  // Atualizar botões
+// --- NOVO: Função para lidar com modos especiais (lançamentos, estreias, em breve) ---
+function handleSpecialMode(mode) {
+  // Desativar botões de tipo
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  document.getElementById('type-releases').classList.add('active');
   
-  isReleaseMode = true;
+  // Desativar todos os botões de categorias especiais
+  document.querySelectorAll('.release-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Ativar o botão correspondente ao modo
+  document.getElementById(`type-${mode}`).classList.add('active');
+  
+  currentMode = mode;
   
   // Atualizar título da seção
   const sectionTitle = document.querySelector('.section-title');
   if (sectionTitle) {
-    sectionTitle.textContent = 'Lançamentos Recentes';
+    switch(mode) {
+      case 'releases':
+        sectionTitle.textContent = 'Lançamentos Recentes';
+        break;
+      case 'premieres':
+        sectionTitle.textContent = 'Estreias da Semana';
+        break;
+      case 'upcoming':
+        sectionTitle.textContent = 'Em Breve nos Cinemas';
+        break;
+    }
   }
   
-  fetchReleases(currentType, currentGenre);
+  // Chamar a função correspondente
+  switch(mode) {
+    case 'releases':
+      fetchReleases(currentType, currentGenre);
+      break;
+    case 'premieres':
+      fetchPremieres(currentType, currentGenre);
+      break;
+    case 'upcoming':
+      fetchUpcoming(currentType, currentGenre);
+      break;
+  }
 }
 
 // --- NOVO: Função para buscar lançamentos recentes ---
@@ -469,6 +509,303 @@ function fetchReleases(type = 'movie', genreId = null) {
         <div class="error-message">
           <i class="fas fa-exclamation-triangle"></i>
           <p>Ocorreu um erro ao carregar os lançamentos. Tente novamente mais tarde.</p>
+        </div>
+      `;
+    });
+}
+
+// --- NOVO: Função para buscar estreias da semana ---
+function fetchPremieres(type = 'movie', genreId = null) {
+  const container = document.getElementById('movies-series');
+  
+  // Adicionar indicador de carregamento
+  container.innerHTML = `
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Carregando estreias da semana...</p>
+    </div>
+  `;
+  
+  // Obter datas da semana atual
+  const today = new Date();
+  const weekStart = new Date(today);
+  const weekEnd = new Date(today);
+  
+  // Ajustar para o início da semana (domingo)
+  const currentDay = today.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+  weekStart.setDate(today.getDate() - currentDay); // Voltar para o domingo
+  weekEnd.setDate(weekStart.getDate() + 6); // Avançar 6 dias (até sábado)
+  
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  };
+  
+  // Preparar URL com filtros para estreias da semana
+  let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc`;
+  
+  if (type === 'movie') {
+    url += `&primary_release_date.gte=${formatDate(weekStart)}&primary_release_date.lte=${formatDate(weekEnd)}`;
+  } else {
+    url += `&first_air_date.gte=${formatDate(weekStart)}&first_air_date.lte=${formatDate(weekEnd)}`;
+  }
+  
+  if (genreId) url += `&with_genres=${genreId}`;
+  
+  // Buscar gêneros para exibir o principal em cada card
+  let genresPromise = fetch(`${BASE_URL}/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`)
+    .then(res => res.json())
+    .then(data => data.genres || []);
+  
+  // Buscar títulos
+  let titlesPromise = fetch(url)
+    .then(res => res.json())
+    .then(data => data.results || []);
+  
+  // Processar ambas as promessas
+  Promise.all([titlesPromise, genresPromise])
+    .then(([titles, genres]) => {
+      // Limpar container
+      container.innerHTML = '';
+      
+      // Criar fragmento para melhor performance
+      const fragment = document.createDocumentFragment();
+      
+      // Verificar se há resultados
+      if (titles.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.innerHTML = `
+          <i class="fas fa-search"></i>
+          <p>Nenhuma estreia encontrada para esta semana com os filtros atuais.</p>
+        `;
+        fragment.appendChild(noResults);
+      } else {
+        // Processar cada título
+        titles.forEach(item => {
+          // Encontrar gênero principal
+          let mainGenre = '';
+          if (item.genre_ids && item.genre_ids.length > 0) {
+            const genreObj = genres.find(g => g.id === item.genre_ids[0]);
+            mainGenre = genreObj ? genreObj.name : '';
+          }
+          
+          // Criar card com classe para animação
+          const card = document.createElement('div');
+          card.className = 'movie-series card-modern card-fade-in';
+          
+          // Verificar se há poster
+          const posterPath = item.poster_path 
+            ? `${IMAGE_BASE_URL}${item.poster_path}` 
+            : 'https://via.placeholder.com/500x750?text=Sem+Imagem';
+          
+          // Formatação da data de lançamento
+          const releaseDate = item.release_date || item.first_air_date || '';
+          const formattedDate = releaseDate ? new Date(releaseDate).toLocaleDateString('pt-BR') : 'Data desconhecida';
+          
+          card.innerHTML = `
+            <div class="image-container">
+              <img src="${posterPath}" alt="${item.title || item.name}" class="card-poster" 
+                   onerror="this.src='https://via.placeholder.com/500x750?text=Erro+ao+Carregar';" />
+              <button class="trailer-button" title="Ver trailer"><i class="fas fa-play"></i></button>
+              <div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>
+              <div class="release-badge premiere-badge"><i class="fas fa-ticket-alt"></i> Estreia: ${formattedDate}</div>
+            </div>
+            <div class="movie-info">
+              <h2 class="movie-title">${item.title || item.name}</h2>
+              <div class="movie-details">
+                <span class="release-year">${releaseDate.slice(0,4)}</span>
+                ${mainGenre ? `<span class="genre-tag">${mainGenre}</span>` : ''}
+              </div>
+            </div>
+          `;
+          
+          // Clicar no card abre detalhes, clicar no botão de trailer abre modal focando no trailer
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('.trailer-button')) {
+              openDetailsModal(type, item.id, true); // true = focar trailer
+            } else {
+              openDetailsModal(type, item.id, false);
+            }
+          });
+          
+          // Adicionar ao fragmento
+          fragment.appendChild(card);
+          
+          // Adicionar efeito de entrada com delay progressivo
+          setTimeout(() => {
+            card.classList.add('show');
+          }, 50 * fragment.childElementCount);
+        });
+      }
+      
+      // Adicionar fragmento ao container
+      container.appendChild(fragment);
+    })
+    .catch(err => {
+      console.error('Erro ao buscar estreias:', err);
+      container.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Ocorreu um erro ao carregar as estreias. Tente novamente mais tarde.</p>
+        </div>
+      `;
+    });
+}
+
+// --- NOVO: Função para buscar lançamentos futuros ---
+function fetchUpcoming(type = 'movie', genreId = null) {
+  const container = document.getElementById('movies-series');
+  
+  // Adicionar indicador de carregamento
+  container.innerHTML = `
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Carregando próximos lançamentos...</p>
+    </div>
+  `;
+  
+  // Obter datas para próximos lançamentos (próximos 3 meses)
+  const today = new Date();
+  const futureDate = new Date(today);
+  futureDate.setMonth(today.getMonth() + 3); // Próximos 3 meses
+  
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  };
+  
+  // Preparar URL com filtros para lançamentos futuros
+  // Para séries, usamos a API diferente pois 'upcoming' só existe para filmes
+  let url;
+  
+  if (type === 'movie') {
+    // Para filmes, podemos usar a API de upcoming
+    url = `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=1&region=BR`;
+    if (genreId) url += `&with_genres=${genreId}`;
+  } else {
+    // Para séries, usamos discover com datas futuras
+    url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc`;
+    url += `&first_air_date.gte=${formatDate(today)}&first_air_date.lte=${formatDate(futureDate)}`;
+    if (genreId) url += `&with_genres=${genreId}`;
+  }
+  
+  // Buscar gêneros para exibir o principal em cada card
+  let genresPromise = fetch(`${BASE_URL}/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`)
+    .then(res => res.json())
+    .then(data => data.genres || []);
+  
+  // Buscar títulos
+  let titlesPromise = fetch(url)
+    .then(res => res.json())
+    .then(data => data.results || []);
+  
+  // Processar ambas as promessas
+  Promise.all([titlesPromise, genresPromise])
+    .then(([titles, genres]) => {
+      // Limpar container
+      container.innerHTML = '';
+      
+      // Criar fragmento para melhor performance
+      const fragment = document.createDocumentFragment();
+      
+      // Verificar se há resultados
+      if (titles.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.innerHTML = `
+          <i class="fas fa-search"></i>
+          <p>Nenhum lançamento futuro encontrado com os filtros atuais.</p>
+        `;
+        fragment.appendChild(noResults);
+      } else {
+        // Processar cada título
+        titles.forEach(item => {
+          // Verificar se a data de lançamento é futura
+          const releaseDate = item.release_date || item.first_air_date || '';
+          const releaseTime = releaseDate ? new Date(releaseDate).getTime() : 0;
+          const currentTime = new Date().getTime();
+          
+          // Só mostrar se for um lançamento futuro
+          if (releaseTime > currentTime) {
+            // Encontrar gênero principal
+            let mainGenre = '';
+            if (item.genre_ids && item.genre_ids.length > 0) {
+              const genreObj = genres.find(g => g.id === item.genre_ids[0]);
+              mainGenre = genreObj ? genreObj.name : '';
+            }
+            
+            // Criar card com classe para animação
+            const card = document.createElement('div');
+            card.className = 'movie-series card-modern card-fade-in';
+            
+            // Verificar se há poster
+            const posterPath = item.poster_path 
+              ? `${IMAGE_BASE_URL}${item.poster_path}` 
+              : 'https://via.placeholder.com/500x750?text=Sem+Imagem';
+            
+            // Formatação da data de lançamento
+            const formattedDate = releaseDate ? new Date(releaseDate).toLocaleDateString('pt-BR') : 'Data desconhecida';
+            
+            // Calcular dias restantes
+            const daysRemaining = releaseTime > 0 ? Math.ceil((releaseTime - currentTime) / (1000 * 60 * 60 * 24)) : null;
+            const daysText = daysRemaining === 1 ? '1 dia' : `${daysRemaining} dias`;
+            
+            card.innerHTML = `
+              <div class="image-container">
+                <img src="${posterPath}" alt="${item.title || item.name}" class="card-poster" 
+                     onerror="this.src='https://via.placeholder.com/500x750?text=Erro+ao+Carregar';" />
+                <button class="trailer-button" title="Ver trailer"><i class="fas fa-play"></i></button>
+                <div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>
+                <div class="release-badge upcoming-badge"><i class="fas fa-calendar-alt"></i> Em ${daysText}</div>
+              </div>
+              <div class="movie-info">
+                <h2 class="movie-title">${item.title || item.name}</h2>
+                <div class="movie-details">
+                  <span class="release-date">${formattedDate}</span>
+                  ${mainGenre ? `<span class="genre-tag">${mainGenre}</span>` : ''}
+                </div>
+              </div>
+            `;
+            
+            // Clicar no card abre detalhes, clicar no botão de trailer abre modal focando no trailer
+            card.addEventListener('click', (e) => {
+              if (e.target.closest('.trailer-button')) {
+                openDetailsModal(type, item.id, true); // true = focar trailer
+              } else {
+                openDetailsModal(type, item.id, false);
+              }
+            });
+            
+            // Adicionar ao fragmento
+            fragment.appendChild(card);
+            
+            // Adicionar efeito de entrada com delay progressivo
+            setTimeout(() => {
+              card.classList.add('show');
+            }, 50 * fragment.childElementCount);
+          }
+        });
+      }
+      
+      // Adicionar fragmento ao container
+      container.appendChild(fragment);
+      
+      // Se não houver resultados após a filtragem
+      if (fragment.childElementCount === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.innerHTML = `
+          <i class="fas fa-search"></i>
+          <p>Nenhum lançamento futuro encontrado com os filtros atuais.</p>
+        `;
+        container.appendChild(noResults);
+      }
+    })
+    .catch(err => {
+      console.error('Erro ao buscar lançamentos futuros:', err);
+      container.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Ocorreu um erro ao carregar os lançamentos futuros. Tente novamente mais tarde.</p>
         </div>
       `;
     });
