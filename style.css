@@ -88,6 +88,20 @@
     .nav-list { flex-direction:row; gap:2rem; justify-content:center; }
   }
   
+  @media (max-width:767px) {
+    .main-nav {
+      width: 85%;
+      max-width: 300px;
+      padding-top: 4rem;
+    }
+    .filter-section {
+      padding: 0.8rem;
+    }
+    .accordion-panel {
+      padding: 0.5rem 0 0 0.5rem;
+    }
+  }
+  
   /* Estilos para seção de filtros */
   .filter-section {
     padding: 1rem;
@@ -210,7 +224,18 @@
     gap: 0.5rem;
     flex-wrap: wrap;
   }
-  
+  .filters {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .filter-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
   .card-modern .release-year {
     font-size: 0.95em;
     color: #ff9800;
@@ -340,6 +365,31 @@
   }
   
   /* Responsividade */
+  @media (max-width: 768px) {
+    .content {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.8rem;
+      padding: 0.8rem;
+    }
+    .section-title {
+      font-size: 1.3rem;
+      margin: 0.8rem 0;
+    }
+    .filters {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0 0.5rem;
+    }
+    .filter-btn {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+    }
+    .filter-select {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+  }
+  
   @media (max-width: 600px) {
     .card-modern {
       width: 98vw;
@@ -348,5 +398,43 @@
     }
     .card-modern .image-container {
       height: 220px;
+    }
+    .modal-content {
+      padding: 1.5rem 0.8rem 0.8rem 0.8rem;
+      width: 98vw;
+    }
+    .modal-close {
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.5rem;
+      font-size: 1.8rem;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .filter-select {
+      grid-column: 1 / -1;
+    }
+  }
+  
+  @media (max-width: 400px) {
+    .site-header {
+      padding: 0.5rem;
+    }
+    .logo {
+      font-size: 1.2rem;
+    }
+    .content {
+      grid-template-columns: 1fr;
+      padding: 0.5rem;
+    }
+    .card-modern {
+      width: 100%;
+      max-width: none;
+    }
+    .modal-body {
+      padding: 0.5rem;
     }
   }

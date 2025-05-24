@@ -2,7 +2,7 @@
 <html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>Filmes & Séries</title>
   <meta name="description" content="Descubra filmes e séries populares, com informações sobre streaming e trailers" />
   <link rel="preconnect" href="https://api.themoviedb.org" />
@@ -109,11 +109,15 @@
 
   <!-- Filtros -->
   <div class="filters">
-    <button id="type-movie" class="filter-btn type-btn active">Filmes</button>
-    <button id="type-tv" class="filter-btn type-btn">Séries</button>
-    <button id="type-releases" class="filter-btn release-btn">Lançamentos</button>
-    <button id="type-premieres" class="filter-btn release-btn">Estreias</button>
-    <button id="type-upcoming" class="filter-btn release-btn">Em Breve</button>
+    <div class="filter-group">
+      <button id="type-movie" class="filter-btn type-btn active">Filmes</button>
+      <button id="type-tv" class="filter-btn type-btn">Séries</button>
+    </div>
+    <div class="filter-group">
+      <button id="type-releases" class="filter-btn release-btn">Lançamentos</button>
+      <button id="type-premieres" class="filter-btn release-btn">Estreias</button>
+      <button id="type-upcoming" class="filter-btn release-btn">Em Breve</button>
+    </div>
     <select id="genre-filter" class="filter-select" title="Filtrar por gênero">
       <option value="">Todos os Gêneros</option>
     </select>
@@ -219,6 +223,15 @@
       .modal-poster {
         width: 100%;
         max-width: 250px;
+        margin-bottom: 1rem;
+      }
+      .modal-info h2 {
+        font-size: 1.5rem;
+        text-align: center;
+      }
+      .modal-trailer iframe {
+        width: 100%;
+        height: 200px;
       }
     }
   </style>
