@@ -359,7 +359,7 @@ function handleSpecialMode(mode) {
         sectionTitle.textContent = 'Lançamentos Recentes';
         break;
       case 'premieres':
-        sectionTitle.textContent = 'Estreias da Semana';
+        sectionTitle.textContent = 'Melhores avaliados da semana';
         break;
       case 'upcoming':
         sectionTitle.textContent = 'Em Breve nos Cinemas';
@@ -517,66 +517,72 @@ function fetchReleases(type = 'movie', genreId = null) {
 // --- NOVO: Função para buscar estreias da semana ---
 function fetchPremieres(type = 'movie', genreId = null) {
   const container = document.getElementById('movies-series');
-  
+
   // Adicionar indicador de carregamento
   container.innerHTML = `
     <div class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Carregando estreias da semana...</p>
+      <p>Carregando melhores avaliados da semana...</p>
     </div>
   `;
-  
+
   // Obter datas da semana atual
   const today = new Date();
   const weekStart = new Date(today);
   const weekEnd = new Date(today);
-  
+
   // Ajustar para o início da semana (domingo)
   const currentDay = today.getDay(); // 0 = Domingo, 1 = Segunda, etc.
   weekStart.setDate(today.getDate() - currentDay); // Voltar para o domingo
   weekEnd.setDate(weekStart.getDate() + 6); // Avançar 6 dias (até sábado)
-  
+
   const formatDate = (date) => {
     return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
   };
-  
-  // Preparar URL com filtros para estreias da semana
-  let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc`;
-  
+
+  // Preparar URL com filtros para melhores avaliados da semana
+  let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=50`;
+
   if (type === 'movie') {
     url += `&primary_release_date.gte=${formatDate(weekStart)}&primary_release_date.lte=${formatDate(weekEnd)}`;
   } else {
     url += `&first_air_date.gte=${formatDate(weekStart)}&first_air_date.lte=${formatDate(weekEnd)}`;
   }
-  
+
   if (genreId) url += `&with_genres=${genreId}`;
-  
+
   // Buscar gêneros para exibir o principal em cada card
   let genresPromise = fetch(`${BASE_URL}/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`)
     .then(res => res.json())
     .then(data => data.genres || []);
-  
+
   // Buscar títulos
   let titlesPromise = fetch(url)
     .then(res => res.json())
-    .then(data => data.results || []);
-  
+    .then(data => (data.results || []).filter(item => item.vote_average >= 6.0));
+
   // Processar ambas as promessas
   Promise.all([titlesPromise, genresPromise])
     .then(([titles, genres]) => {
       // Limpar container
       container.innerHTML = '';
-      
+
+      // Atualizar título da seção
+      const sectionTitle = document.querySelector('.section-title');
+      if (sectionTitle) {
+        sectionTitle.textContent = 'Melhores avaliados da semana';
+      }
+
       // Criar fragmento para melhor performance
       const fragment = document.createDocumentFragment();
-      
+
       // Verificar se há resultados
       if (titles.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'no-results';
         noResults.innerHTML = `
           <i class="fas fa-search"></i>
-          <p>Nenhuma estreia encontrada para esta semana com os filtros atuais.</p>
+          <p>Nenhum título bem avaliado encontrado para esta semana com os filtros atuais.</p>
         `;
         fragment.appendChild(noResults);
       } else {
@@ -588,20 +594,20 @@ function fetchPremieres(type = 'movie', genreId = null) {
             const genreObj = genres.find(g => g.id === item.genre_ids[0]);
             mainGenre = genreObj ? genreObj.name : '';
           }
-          
+
           // Criar card com classe para animação
           const card = document.createElement('div');
           card.className = 'movie-series card-modern card-fade-in';
-          
+
           // Verificar se há poster
           const posterPath = item.poster_path 
             ? `${IMAGE_BASE_URL}${item.poster_path}` 
             : 'https://via.placeholder.com/500x750?text=Sem+Imagem';
-          
+
           // Formatação da data de lançamento
           const releaseDate = item.release_date || item.first_air_date || '';
           const formattedDate = releaseDate ? new Date(releaseDate).toLocaleDateString('pt-BR') : 'Data desconhecida';
-          
+
           card.innerHTML = `
             <div class="image-container">
               <img src="${posterPath}" alt="${item.title || item.name}" class="card-poster" 
@@ -618,7 +624,7 @@ function fetchPremieres(type = 'movie', genreId = null) {
               </div>
             </div>
           `;
-          
+
           // Clicar no card abre detalhes, clicar no botão de trailer abre modal focando no trailer
           card.addEventListener('click', (e) => {
             if (e.target.closest('.trailer-button')) {
@@ -627,26 +633,26 @@ function fetchPremieres(type = 'movie', genreId = null) {
               openDetailsModal(type, item.id, false);
             }
           });
-          
+
           // Adicionar ao fragmento
           fragment.appendChild(card);
-          
+
           // Adicionar efeito de entrada com delay progressivo
           setTimeout(() => {
             card.classList.add('show');
           }, 50 * fragment.childElementCount);
         });
       }
-      
+
       // Adicionar fragmento ao container
       container.appendChild(fragment);
     })
     .catch(err => {
-      console.error('Erro ao buscar estreias:', err);
+      console.error('Erro ao buscar melhores avaliados da semana:', err);
       container.innerHTML = `
         <div class="error-message">
           <i class="fas fa-exclamation-triangle"></i>
-          <p>Ocorreu um erro ao carregar as estreias. Tente novamente mais tarde.</p>
+          <p>Ocorreu um erro ao carregar os melhores avaliados da semana. Tente novamente mais tarde.</p>
         </div>
       `;
     });
