@@ -530,40 +530,65 @@ function fetchPremieres(type = 'movie', genreId = null) {
   const today = new Date();
   const weekStart = new Date(today);
   const weekEnd = new Date(today);
+  const currentDay = today.getDay();
+  weekStart.setDate(today.getDate() - currentDay);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const formatDate = (date) => date.toISOString().split('T')[0];
 
-  // Ajustar para o início da semana (domingo)
-  const currentDay = today.getDay(); // 0 = Domingo, 1 = Segunda, etc.
-  weekStart.setDate(today.getDate() - currentDay); // Voltar para o domingo
-  weekEnd.setDate(weekStart.getDate() + 6); // Avançar 6 dias (até sábado)
-
-  const formatDate = (date) => {
-    return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-  };
-
-  // Preparar URL com filtros para melhores avaliados da semana
-  let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=50`;
-
-  if (type === 'movie') {
-    url += `&primary_release_date.gte=${formatDate(weekStart)}&primary_release_date.lte=${formatDate(weekEnd)}`;
-  } else {
-    url += `&first_air_date.gte=${formatDate(weekStart)}&first_air_date.lte=${formatDate(weekEnd)}`;
+  // Buscar múltiplas páginas
+  const totalPages = 10;
+  const fetches = [];
+  for (let page = 1; page <= totalPages; page++) {
+    let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=${page}&sort_by=vote_average.desc&vote_count.gte=1`;
+    if (type === 'movie') {
+      url += `&primary_release_date.gte=${formatDate(weekStart)}&primary_release_date.lte=${formatDate(weekEnd)}`;
+    } else {
+      url += `&first_air_date.gte=${formatDate(weekStart)}&first_air_date.lte=${formatDate(weekEnd)}`;
+    }
+    if (genreId) url += `&with_genres=${genreId}`;
+    fetches.push(fetch(url).then(res => res.json()).then(data => data.results || []));
   }
-
-  if (genreId) url += `&with_genres=${genreId}`;
 
   // Buscar gêneros para exibir o principal em cada card
   let genresPromise = fetch(`${BASE_URL}/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`)
     .then(res => res.json())
     .then(data => data.genres || []);
 
-  // Buscar títulos
-  let titlesPromise = fetch(url)
-    .then(res => res.json())
-    .then(data => (data.results || []).filter(item => item.vote_average >= 6.0));
+  // Função para embaralhar array de forma determinística por dia
+  function shuffleByDay(array) {
+    const seed = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    function seededRandom() {
+      const x = Math.sin(hash++) * 10000;
+      return x - Math.floor(x);
+    }
+    // Fisher-Yates shuffle
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRandom() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
 
-  // Processar ambas as promessas
-  Promise.all([titlesPromise, genresPromise])
-    .then(([titles, genres]) => {
+  // Processar todas as promessas
+  Promise.all([Promise.all(fetches), genresPromise])
+    .then(([[...pages], genres]) => {
+      // Juntar todos os resultados e remover duplicados por ID
+      const allTitles = [].concat(...pages);
+      const uniqueTitles = [];
+      const seenIds = new Set();
+      for (const item of allTitles) {
+        if (!seenIds.has(item.id) && item.vote_average >= 6.0) {
+          uniqueTitles.push(item);
+          seenIds.add(item.id);
+        }
+      }
+      // Embaralhar de forma determinística por dia
+      shuffleByDay(uniqueTitles);
+
       // Limpar container
       container.innerHTML = '';
 
@@ -577,7 +602,7 @@ function fetchPremieres(type = 'movie', genreId = null) {
       const fragment = document.createDocumentFragment();
 
       // Verificar se há resultados
-      if (titles.length === 0) {
+      if (uniqueTitles.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'no-results';
         noResults.innerHTML = `
@@ -587,7 +612,7 @@ function fetchPremieres(type = 'movie', genreId = null) {
         fragment.appendChild(noResults);
       } else {
         // Processar cada título
-        titles.forEach(item => {
+        uniqueTitles.forEach((item, idx) => {
           // Encontrar gênero principal
           let mainGenre = '';
           if (item.genre_ids && item.genre_ids.length > 0) {
@@ -640,7 +665,7 @@ function fetchPremieres(type = 'movie', genreId = null) {
           // Adicionar efeito de entrada com delay progressivo
           setTimeout(() => {
             card.classList.add('show');
-          }, 50 * fragment.childElementCount);
+          }, 50 * idx);
         });
       }
 
