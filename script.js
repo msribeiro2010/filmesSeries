@@ -12,10 +12,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const nav = document.querySelector('.main-nav');
   const overlay = document.querySelector('.nav-overlay');
 
+  // Ensure navigation is visible on larger screens
+  if (window.matchMedia('(min-width: 768px)').matches) {
+    nav.removeAttribute('hidden');
+  }
+
+  const mediaQuery = window.matchMedia('(min-width: 768px)');
+  mediaQuery.addEventListener('change', e => {
+    if (e.matches) {
+      nav.removeAttribute('hidden');
+      nav.classList.remove('show');
+      overlay.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    } else {
+      nav.setAttribute('hidden', '');
+    }
+  });
+
   // Menu mobile toggle
   function toggleMenu() {
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!expanded));
+    if (!expanded) {
+      nav.removeAttribute('hidden');
+    } else {
+      nav.setAttribute('hidden', '');
+    }
     nav.classList.toggle('show');
     overlay.classList.toggle('active');
     document.body.style.overflow = !expanded ? 'hidden' : '';
