@@ -1,1 +1,1 @@
-Filmes e séries mais assistidas e estréias no cinema e nos streams.
+Filmes e séries mais assistidas e estreias no cinema e nos streams.
