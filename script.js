@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   btn.addEventListener('click', toggleMenu);
   overlay.addEventListener('click', toggleMenu);
+  // Expose for testing
+  window.toggleMenu = toggleMenu;
 
   // Accordion functionality
   document.querySelectorAll('.accordion-header').forEach(header => {
