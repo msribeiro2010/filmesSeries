@@ -12,11 +12,6 @@ let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
   function toggleMenu() {
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!expanded));
-    if (!expanded) {
-      nav.removeAttribute('hidden');
-    } else {
-      nav.setAttribute('hidden', '');
-    }
     nav.classList.toggle('show');
     overlay.classList.toggle('active');
     if (!expanded) {
