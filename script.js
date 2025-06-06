@@ -7,10 +7,12 @@ let currentType = 'movie'; // 'movie' ou 'tv'
 let currentGenre = null;
 let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
 
+let btn, nav, overlay;
+
 document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.querySelector('.hamburger');
-  const nav = document.querySelector('.main-nav');
-  const overlay = document.querySelector('.nav-overlay');
+  btn = document.querySelector('.hamburger');
+  nav = document.querySelector('.main-nav');
+  overlay = document.querySelector('.nav-overlay');
 
   // Menu mobile toggle
   function toggleMenu() {
@@ -18,7 +20,19 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.setAttribute('aria-expanded', String(!expanded));
     nav.classList.toggle('show');
     overlay.classList.toggle('active');
-    document.body.style.overflow = !expanded ? 'hidden' : '';
+    if (!expanded) {
+      nav.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+    } else {
+      nav.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.toggleMenu = toggleMenu;
+  }
+  if (typeof module !== 'undefined') {
+    module.exports.toggleMenu = toggleMenu;
   }
   btn.addEventListener('click', toggleMenu);
   overlay.addEventListener('click', toggleMenu);
@@ -514,7 +528,7 @@ function fetchReleases(type = 'movie', genreId = null) {
     });
 }
 
-// --- NOVO: Função para buscar estreias da semana ---
+// --- NOVO: Função para buscar os melhores avaliados da semana ---
 function fetchPremieres(type = 'movie', genreId = null) {
   const container = document.getElementById('movies-series');
 
