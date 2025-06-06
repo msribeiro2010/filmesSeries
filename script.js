@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!expanded));
     nav.classList.toggle('show');
+    nav.hidden = expanded;
     overlay.classList.toggle('active');
     document.body.style.overflow = !expanded ? 'hidden' : '';
   }
