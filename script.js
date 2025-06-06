@@ -7,30 +7,6 @@ let currentType = 'movie'; // 'movie' ou 'tv'
 let currentGenre = null;
 let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
 
-let btn, nav, overlay;
-
-document.addEventListener('DOMContentLoaded', () => {
-  btn = document.querySelector('.hamburger');
-  nav = document.querySelector('.main-nav');
-  overlay = document.querySelector('.nav-overlay');
-
-  // Ensure navigation is visible on larger screens
-  if (window.matchMedia('(min-width: 768px)').matches) {
-    nav.removeAttribute('hidden');
-  }
-
-  const mediaQuery = window.matchMedia('(min-width: 768px)');
-  mediaQuery.addEventListener('change', e => {
-    if (e.matches) {
-      nav.removeAttribute('hidden');
-      nav.classList.remove('show');
-      overlay.classList.remove('active');
-      btn.setAttribute('aria-expanded', 'false');
-      document.body.style.overflow = '';
-    } else {
-      nav.setAttribute('hidden', '');
-    }
-  });
 
   // Menu mobile toggle
   function toggleMenu() {
@@ -107,7 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtn) closeBtn.onclick = closeModal;
     if (overlay) overlay.onclick = closeModal;
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMenu);
+} else {
+  initMenu();
+}
 
 // --- NOVO: Função para buscar gêneros ---
 function fetchGenres(type = 'movie') {
