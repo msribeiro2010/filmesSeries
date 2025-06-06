@@ -844,4 +844,8 @@ function fetchUpcoming(type = 'movie', genreId = null) {
 
 // Preserve tema
 const saved = localStorage.getItem('theme');
-if (saved) document.documentElement.setAttribute('data-theme', saved);
+if (saved) {
+  document.documentElement.setAttribute('data-theme', saved);
+  const icon = document.querySelector('.theme-toggle i');
+  if (icon) icon.className = saved === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
