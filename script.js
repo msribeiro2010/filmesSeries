@@ -59,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchGenres('movie');
   fetchPopular('movie');
 
+  // Iniciar agendamento de atualização diária das estreias
+  scheduleDailyRefresh();
+
   // Garantir que o modal feche corretamente
   const modal = document.getElementById('details-modal');
   if (modal) {
@@ -840,6 +843,21 @@ function fetchUpcoming(type = 'movie', genreId = null) {
         </div>
       `;
     });
+}
+
+// --- NOVO: Agendamento diário de atualização das estreias ---
+function scheduleDailyRefresh() {
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const delay = nextMidnight.getTime() - now.getTime();
+
+  setTimeout(() => {
+    fetchPremieres(currentType, currentGenre);
+    setInterval(() => {
+      fetchPremieres(currentType, currentGenre);
+    }, 24 * 60 * 60 * 1000);
+  }, delay);
 }
 
 // Preserve tema
