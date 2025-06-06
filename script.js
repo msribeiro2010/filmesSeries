@@ -13,6 +13,7 @@ let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!expanded));
     nav.classList.toggle('show');
+    nav.hidden = expanded;
     overlay.classList.toggle('active');
     if (!expanded) {
       nav.removeAttribute('hidden');
