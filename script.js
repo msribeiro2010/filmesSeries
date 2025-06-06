@@ -87,7 +87,7 @@ function fetchGenres(type = 'movie') {
     .catch(err => console.error('Erro ao buscar gêneros:', err));
 }
 
-// --- NOVO: Função para buscar filmes ou séries populares com filtro de gênero e ordenação por melhores avaliados ---
+// --- Função para buscar títulos bem avaliados (filmes ou séries) com filtro de gênero ---
 function fetchPopular(type = 'movie', genreId = null) {
   const container = document.getElementById('movies-series');
   
