@@ -7,7 +7,7 @@ let currentType = 'movie'; // 'movie' ou 'tv'
 let currentGenre = null;
 let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
 
-document.addEventListener('DOMContentLoaded', () => {
+function initMenu() {
   const btn = document.querySelector('.hamburger');
   const nav = document.querySelector('.main-nav');
   const overlay = document.querySelector('.nav-overlay');
@@ -67,7 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtn) closeBtn.onclick = closeModal;
     if (overlay) overlay.onclick = closeModal;
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMenu);
+} else {
+  initMenu();
+}
 
 // --- NOVO: Função para buscar gêneros ---
 function fetchGenres(type = 'movie') {
