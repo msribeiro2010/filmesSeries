@@ -7,19 +7,50 @@ let currentType = 'movie'; // 'movie' ou 'tv'
 let currentGenre = null;
 let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
 
+let btn, nav, overlay;
+
 document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.querySelector('.hamburger');
-  const nav = document.querySelector('.main-nav');
-  const overlay = document.querySelector('.nav-overlay');
+  btn = document.querySelector('.hamburger');
+  nav = document.querySelector('.main-nav');
+  overlay = document.querySelector('.nav-overlay');
+
+  // Ensure navigation is visible on larger screens
+  if (window.matchMedia('(min-width: 768px)').matches) {
+    nav.removeAttribute('hidden');
+  }
+
+  const mediaQuery = window.matchMedia('(min-width: 768px)');
+  mediaQuery.addEventListener('change', e => {
+    if (e.matches) {
+      nav.removeAttribute('hidden');
+      nav.classList.remove('show');
+      overlay.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    } else {
+      nav.setAttribute('hidden', '');
+    }
+  });
 
   // Menu mobile toggle
   function toggleMenu() {
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!expanded));
-    nav.hidden = expanded;
     nav.classList.toggle('show');
     overlay.classList.toggle('active');
-    document.body.style.overflow = !expanded ? 'hidden' : '';
+    if (!expanded) {
+      nav.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+    } else {
+      nav.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.toggleMenu = toggleMenu;
+  }
+  if (typeof module !== 'undefined') {
+    module.exports.toggleMenu = toggleMenu;
   }
   btn.addEventListener('click', toggleMenu);
   overlay.addEventListener('click', toggleMenu);
@@ -60,6 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchGenres('movie');
   fetchPopular('movie');
 
+  // Iniciar agendamento de atualização diária das estreias
+  scheduleDailyRefresh();
+
   // Garantir que o modal feche corretamente
   const modal = document.getElementById('details-modal');
   if (modal) {
@@ -88,7 +122,7 @@ function fetchGenres(type = 'movie') {
     .catch(err => console.error('Erro ao buscar gêneros:', err));
 }
 
-// --- NOVO: Função para buscar filmes ou séries populares com filtro de gênero e ordenação por melhores avaliados ---
+// --- Função para buscar títulos bem avaliados (filmes ou séries) com filtro de gênero ---
 function fetchPopular(type = 'movie', genreId = null) {
   const container = document.getElementById('movies-series');
   
@@ -515,7 +549,7 @@ function fetchReleases(type = 'movie', genreId = null) {
     });
 }
 
-// --- NOVO: Função para buscar estreias da semana ---
+// --- NOVO: Função para buscar os melhores avaliados da semana ---
 function fetchPremieres(type = 'movie', genreId = null) {
   const container = document.getElementById('movies-series');
 
@@ -843,6 +877,25 @@ function fetchUpcoming(type = 'movie', genreId = null) {
     });
 }
 
+// --- NOVO: Agendamento diário de atualização das estreias ---
+function scheduleDailyRefresh() {
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const delay = nextMidnight.getTime() - now.getTime();
+
+  setTimeout(() => {
+    fetchPremieres(currentType, currentGenre);
+    setInterval(() => {
+      fetchPremieres(currentType, currentGenre);
+    }, 24 * 60 * 60 * 1000);
+  }, delay);
+}
+
 // Preserve tema
 const saved = localStorage.getItem('theme');
-if (saved) document.documentElement.setAttribute('data-theme', saved);
+if (saved) {
+  document.documentElement.setAttribute('data-theme', saved);
+  const icon = document.querySelector('.theme-toggle i');
+  if (icon) icon.className = saved === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
