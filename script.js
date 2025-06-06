@@ -31,6 +31,8 @@ let currentMode = 'default'; // 'default', 'releases', 'premieres', 'upcoming'
   }
   btn.addEventListener('click', toggleMenu);
   overlay.addEventListener('click', toggleMenu);
+  // Expose for testing
+  window.toggleMenu = toggleMenu;
 
   // Accordion functionality
   document.querySelectorAll('.accordion-header').forEach(header => {
