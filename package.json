@@ -1,0 +1,18 @@
+{
+  "name": "filmesseries",
+  "version": "1.0.0",
+  "description": "Filmes e séries mais assistidas e estréias no cinema e nos streams.",
+  "main": "script.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jsdom": "^26.1.0"
+  }
+}

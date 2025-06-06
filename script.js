@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleMenu() {
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!expanded));
+    nav.hidden = expanded;
     nav.classList.toggle('show');
     overlay.classList.toggle('active');
     document.body.style.overflow = !expanded ? 'hidden' : '';
