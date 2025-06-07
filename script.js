@@ -99,13 +99,19 @@ function fetchPopular(type = 'movie', genreId = null) {
     </div>
   `;
   
+  // Calcular datas do mês atual
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const formatDate = (date) => date.toISOString().split('T')[0];
+
   // Preparar URL com filtros
-  let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=100`;
+  let url = `${BASE_URL}/discover/${type}?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=1`;
   if (genreId) url += `&with_genres=${genreId}`;
   if (type === 'movie') {
-    url += `&primary_release_date.gte=2024-01-01`;
+    url += `&primary_release_date.gte=${formatDate(firstDay)}&primary_release_date.lte=${formatDate(lastDay)}`;
   } else {
-    url += `&first_air_date.gte=2024-01-01`;
+    url += `&first_air_date.gte=${formatDate(firstDay)}&first_air_date.lte=${formatDate(lastDay)}`;
   }
   
   // Buscar gêneros para exibir o principal em cada card
