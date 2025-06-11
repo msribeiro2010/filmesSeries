@@ -1,239 +1,93 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Filmes & Séries</title>
-  <meta name="description" content="Descubra filmes e séries populares, com informações sobre streaming e trailers" />
-  <link rel="preconnect" href="https://api.themoviedb.org" />
-  <link rel="preconnect" href="https://image.tmdb.org" />
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    integrity="sha512-KNy+YEkZcIwF+qZcCk3/Na7kF8XowgYMbZB4W0IUNQmzcCzo5HsVqLXvI8rMQeTOpX1ae8tSTuZxHIl3Bf8Nlg=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    .filters {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-    .filter-btn {
-      padding: 0.5rem 1rem;
-      border: none;
-      background: #444;
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .filter-btn.active, .filter-btn:focus {
-      background: #ff9800;
-      color: #222;
-    }
-    .filter-select {
-      padding: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    .release-badge {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      z-index: 2;
-    }
-    .premiere-badge {
-      background: rgba(0, 128, 0, 0.8);
-      color: white;
-    }
-    .upcoming-badge {
-      background: rgba(128, 0, 128, 0.8);
-      color: white;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎬 Filmes & Séries</title>
+  <meta name="description" content="Descubra filmes e séries populares">
+  <link rel="preconnect" href="https://api.themoviedb.org">
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header">
-    <button class="hamburger" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
-      <span></span><span></span><span></span>
-    </button>
-    <h1 class="logo">🎬 Filmes & Séries</h1>
-    <button class="theme-toggle" aria-label="Alternar tema">
-      <i class="fas fa-moon"></i>
-    </button>
-  </header>
-
-  <nav id="main-nav" class="main-nav" hidden>
-    <!-- Filtros e Ordenação -->
-    <div class="filter-section">
-      <div class="accordion">
-        <div class="accordion-item">
-          <button class="accordion-header" aria-expanded="true" aria-controls="accordion-filtros">
-            Filtros <i class="fas fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accordion-filtros">
-            <div class="filter-buttons">
-              <button data-filter="all" class="active">Todos</button>
-              <button data-filter="movie">Filmes</button>
-              <button data-filter="tv">Séries</button>
-            </div>
-          </div>
-        </div>
-        <div class="accordion-item">
-          <button class="accordion-header" aria-expanded="false" aria-controls="accordion-ordenacao">
-            Ordenação <i class="fas fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accordion-ordenacao" hidden>
-            <div class="sort-buttons">
-              <button data-sort="rating" class="active">Melhores Avaliados</button>
-              <button data-sort="popularity">Mais Populares</button>
-              <button data-sort="date">Mais Recentes</button>
-              <button data-sort="upcoming">Lançamentos Futuros</button>
-            </div>
-          </div>
-        </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <h1 class="logo">🎬 Filmes & Séries</h1>
+      <div class="header-controls">
+        <button type="button" class="theme-toggle" aria-label="Alternar tema">
+          <i class="fas fa-moon"></i>
+        </button>
       </div>
     </div>
-  </nav>
-
-  <div class="nav-overlay"></div>
+  </header>
 
   <!-- Filtros -->
-  <div class="filters">
-    <div class="filter-group">
-      <button id="type-movie" class="filter-btn type-btn active">Filmes</button>
-      <button id="type-tv" class="filter-btn type-btn">Séries</button>
-    </div>
-    <div class="filter-group">
-      <button id="type-releases" class="filter-btn release-btn">Lançamentos</button>
-      <button id="type-premieres" class="filter-btn release-btn">Estreias</button>
-      <button id="type-upcoming" class="filter-btn release-btn">Em Breve</button>
-    </div>
-    <select id="genre-filter" class="filter-select" title="Filtrar por gênero">
-      <option value="">Todos os Gêneros</option>
-    </select>
-  </div>
-  
-  <h2 class="section-title">Filmes Populares</h2>
+  <section class="filters">
+    <div class="container">
+      <div class="filter-tabs">
+        <button type="button" class="filter-tab active" data-type="movie">
+          <i class="fas fa-film"></i>
+          Filmes
+        </button>
+        <button type="button" class="filter-tab" data-type="tv">
+          <i class="fas fa-tv"></i>
+          Séries
+        </button>
+      </div>
 
-  <main class="content" id="movies-series">
-    <!-- Os cards de filmes e séries serão inseridos pelo script.js -->
+      <div class="filter-options">
+        <select class="filter-select" id="content-filter" title="Filtrar por categoria">
+          <option value="popular">Populares (2024+)</option>
+          <option value="upcoming">Lançamentos 2025+</option>
+          <option value="in_theaters">Em Cartaz</option>
+        </select>
+
+        <select class="filter-select" id="genre-filter" title="Filtrar por gênero">
+          <option value="">Todos os gêneros</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Conteúdo Principal -->
+  <main class="main">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" id="section-title">Filmes Populares (2024+)</h2>
+        <div class="loading-indicator" id="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          Carregando...
+        </div>
+      </div>
+
+      <div class="content-grid" id="content-grid">
+        <!-- Cards serão inseridos aqui pelo JavaScript -->
+      </div>
+    </div>
   </main>
 
-  <footer class="site-footer">
-    Desenvolvido por
-    <a href="https://github.com/msribeiro2010" target="_blank" rel="noopener noreferrer">Marcelo Ribeiro</a>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>Desenvolvido por <a href="https://github.com/msribeiro2010" target="_blank" rel="noopener">Marcelo Ribeiro</a></p>
+    </div>
   </footer>
 
-  <script src="script.js"></script>
-
-  <!-- Modal de detalhes (inicialmente oculto, será preenchido pelo JS) -->
-  <div id="details-modal" style="display:none;">
+  <!-- Modal -->
+  <div class="modal" id="modal">
     <div class="modal-overlay"></div>
     <div class="modal-content">
-      <button class="modal-close" aria-label="Fechar">&times;</button>
-      <div class="modal-body"></div>
+      <button type="button" class="modal-close" aria-label="Fechar">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="modal-body" id="modal-body">
+        <!-- Conteúdo do modal será inserido aqui -->
+      </div>
     </div>
   </div>
 
-  <style>
-    #details-modal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      background: rgba(0,0,0,0.7);
-      transition: opacity 0.2s;
-    }
-    #details-modal.show {
-      display: flex;
-      opacity: 1;
-    }
-    .modal-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-    }
-    .modal-content {
-      position: relative;
-      background: #222;
-      color: #fff;
-      border-radius: 8px;
-      max-width: 700px;
-      width: 95vw;
-      max-height: 90vh;
-      overflow-y: auto;
-      z-index: 2;
-      padding: 2rem 1rem 1rem 1rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .modal-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 2rem;
-      cursor: pointer;
-      z-index: 3;
-    }
-    .modal-body {
-      display: flex;
-      flex-direction: row;
-      gap: 1.5rem;
-      align-items: flex-start;
-      width: 100%;
-    }
-    .modal-poster {
-      width: 180px;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      flex-shrink: 0;
-    }
-    .modal-info {
-      flex: 1;
-      min-width: 0;
-    }
-    .modal-info h2 {
-      margin-top: 0;
-    }
-    .modal-trailer {
-      margin-top: 1rem;
-    }
-    @media (max-width: 600px) {
-      .modal-body {
-        flex-direction: column;
-        align-items: center;
-      }
-      .modal-poster {
-        width: 100%;
-        max-width: 250px;
-        margin-bottom: 1rem;
-      }
-      .modal-info h2 {
-        font-size: 1.5rem;
-        text-align: center;
-      }
-      .modal-trailer iframe {
-        width: 100%;
-        height: 200px;
-      }
-    }
-  </style>
+  <script src="script.js"></script>
 </body>
 </html>
