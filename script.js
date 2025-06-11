@@ -104,7 +104,6 @@ async function loadContent(type, genreId = '', filter = 'popular') {
     switch (filter) {
       case 'upcoming':
         // Lançamentos futuros (2025 em diante)
-        console.log('🚀 Buscando próximos lançamentos (2025+)...');
 
         if (type === 'movie') {
           // Para filmes: usar discover para ter mais controle sobre as datas
@@ -477,12 +476,9 @@ function createCard(item) {
   // Formatar data completa (mês/ano)
   const formattedDate = formatReleaseDate(date);
 
-  // Log para debug
-  console.log(`Criando card: "${title}" (${year}) - Data: ${date}`);
-
   // VERIFICAÇÃO FINAL: Se não for de 2024+, não criar o card
   if (year < 2024) {
-    console.error(`ERRO: Tentativa de criar card para "${title}" (${year}) - BLOQUEADO!`);
+    console.warn(`Conteúdo anterior a 2024 bloqueado: "${title}" (${year})`);
     return document.createElement('div'); // Retorna div vazia
   }
 
