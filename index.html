@@ -16,6 +16,7 @@
     <div class="container">
       <h1 class="logo">🎬 Filmes & Séries</h1>
       <div class="header-controls">
+        <button type="button" id="debug-btn" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; margin-right: 8px; font-size: 12px;">🐛 Debug</button>
         <button type="button" class="theme-toggle" aria-label="Alternar tema">
           <i class="fas fa-moon"></i>
         </button>
@@ -39,9 +40,9 @@
 
       <div class="filter-options">
         <select class="filter-select" id="content-filter" title="Filtrar por categoria">
-          <option value="popular">Populares (2024+)</option>
-          <option value="upcoming">Lançamentos 2025+</option>
-          <option value="in_theaters">Em Cartaz</option>
+          <option value="popular">Mais Populares (2024+)</option>
+          <option value="upcoming">Próximos Lançamentos</option>
+          <option value="in_theaters">Em Cartaz/No Ar</option>
         </select>
 
         <select class="filter-select" id="genre-filter" title="Filtrar por gênero">
@@ -55,7 +56,7 @@
   <main class="main">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title" id="section-title">Filmes Populares (2024+)</h2>
+        <h2 class="section-title" id="section-title">Filmes Mais Populares (2024+)</h2>
         <div class="loading-indicator" id="loading">
           <i class="fas fa-spinner fa-spin"></i>
           Carregando...
