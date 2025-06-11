@@ -173,7 +173,6 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
       case 'in_theaters':
         // Em cartaz nos cinemas / No ar na TV
-        console.log('🎬 Buscando conteúdo em cartaz/no ar...');
 
         if (type === 'movie') {
           // Para filmes: buscar filmes em cartaz nos cinemas
@@ -218,7 +217,6 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
       default: // popular
         // Mais populares de 2024 em diante
-        console.log('🔥 Buscando mais populares de 2024+...');
 
         if (type === 'movie') {
           // Para filmes: buscar os mais populares de 2024+
