@@ -303,10 +303,12 @@ async function loadContent(type, genreId = '', filter = 'popular') {
         const currentYear = new Date().getFullYear();
         const popularStartDate = `${currentYear - 1}-01-01`; // Do ano passado em diante
 
+        let endpoint = ''; // Declarar endpoint fora dos blocos
+        
         if (type === 'movie') {
           // Para filmes: buscar os mais populares recentes
           console.log('Buscando filmes mais populares recentes...');
-          const endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=${popularStartDate}`;
+          endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=${popularStartDate}`;
 
           console.log('Endpoint filmes populares:', endpoint);
         } else {
@@ -314,7 +316,7 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           console.log('Buscando séries mais populares recentes...');
 
           // Buscar séries que estrearam recentemente
-          const endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=${popularStartDate}`;
+          endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=${popularStartDate}`;
 
           console.log('Endpoint séries populares:', endpoint);
           const data = await fetchWithFallback(endpoint);
