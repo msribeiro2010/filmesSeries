@@ -103,25 +103,31 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
     switch (filter) {
       case 'upcoming':
-        // Lançamentos futuros (2025 em diante)
+        // Próximos lançamentos - a partir do mês atual (julho 2025)
+
+        // Obter data atual
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // getMonth() retorna 0-11
+        const currentDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
 
         if (type === 'movie') {
-          // Para filmes: usar discover para ter mais controle sobre as datas
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=2025-01-01&vote_count.gte=10`;
+          // Para filmes: buscar lançamentos a partir do mês atual
+          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=10`;
 
-          console.log('URL filmes futuros:', url);
+          console.log(`URL filmes futuros (a partir de ${currentDate}):`, url);
           const response = await fetch(url);
           const data = await response.json();
 
-          // Filtrar rigorosamente apenas filmes de 2025+
+          // Filtrar apenas filmes que ainda não foram lançados
           results = (data.results || []).filter(item => {
             const releaseDate = item.release_date;
             if (!releaseDate) return false;
 
-            const year = new Date(releaseDate).getFullYear();
-            const isFuture = year >= 2025;
+            const releaseDateTime = new Date(releaseDate);
+            const isFuture = releaseDateTime >= now;
 
-            console.log(`Filme: "${item.title}" - Data: ${releaseDate} (${year}) - Futuro: ${isFuture}`);
+            console.log(`Filme: "${item.title}" - Data: ${releaseDate} - É futuro: ${isFuture}`);
             return isFuture;
           });
 
@@ -133,17 +139,19 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
             const futureUpcoming = (upcomingData.results || []).filter(item => {
               const releaseDate = item.release_date;
-              return releaseDate && new Date(releaseDate).getFullYear() >= 2025;
+              if (!releaseDate) return false;
+              const releaseDateTime = new Date(releaseDate);
+              return releaseDateTime >= now;
             });
 
             results = [...results, ...futureUpcoming];
           }
 
         } else {
-          // Para séries: buscar séries que estrearão em 2025+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=5`;
+          // Para séries: buscar séries que estrearão a partir do mês atual
+          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
 
-          console.log('URL séries futuras:', url);
+          console.log(`URL séries futuras (a partir de ${currentDate}):`, url);
           const response = await fetch(url);
           const data = await response.json();
 
@@ -151,10 +159,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
             const airDate = item.first_air_date;
             if (!airDate) return false;
 
-            const year = new Date(airDate).getFullYear();
-            const isFuture = year >= 2025;
+            const airDateTime = new Date(airDate);
+            const isFuture = airDateTime >= now;
 
-            console.log(`Série: "${item.name}" - Data: ${airDate} (${year}) - Futuro: ${isFuture}`);
+            console.log(`Série: "${item.name}" - Data: ${airDate} - É futuro: ${isFuture}`);
             return isFuture;
           });
         }
@@ -326,22 +334,36 @@ async function loadContent(type, genreId = '', filter = 'popular') {
       );
     }
 
-    // FILTRO FINAL: Garantir que TODOS os resultados sejam de 2025+
+    // FILTRO FINAL: Para próximos lançamentos, garantir que sejam futuros; para outros, garantir que sejam de 2025+
     results = results.filter(item => {
       const date = item.release_date || item.first_air_date;
       if (!date) return false;
 
-      const year = new Date(date).getFullYear();
-      const isFrom2025Plus = year >= 2025;
+      if (filter === 'upcoming') {
+        // Para próximos lançamentos, filtrar apenas conteúdo futuro
+        const itemDate = new Date(date);
+        const now = new Date();
+        const isFuture = itemDate >= now;
 
-      if (!isFrom2025Plus) {
-        console.log(`Removendo "${item.title || item.name}" (${year}) - não é de 2025+`);
+        if (!isFuture) {
+          console.log(`Removendo "${item.title || item.name}" (${date}) - não é futuro`);
+        }
+
+        return isFuture;
+      } else {
+        // Para outros filtros, manter a lógica de 2025+
+        const year = new Date(date).getFullYear();
+        const isFrom2025Plus = year >= 2025;
+
+        if (!isFrom2025Plus) {
+          console.log(`Removendo "${item.title || item.name}" (${year}) - não é de 2025+`);
+        }
+
+        return isFrom2025Plus;
       }
-
-      return isFrom2025Plus;
     });
 
-    console.log(`Após filtro final: ${results.length} itens de 2025+`);
+    console.log(`Após filtro final: ${results.length} itens ${filter === 'upcoming' ? 'futuros' : 'de 2025+'}`);
 
     // Se não houver resultados de 2025+, buscar especificamente
     if (results.length === 0) {
@@ -690,7 +712,12 @@ function updateSectionTitle(type, genreId = '', filter = 'popular') {
   let filterText = '';
   switch (filter) {
     case 'upcoming':
-      filterText = type === 'movie' ? 'Próximos Lançamentos (2025+)' : 'Séries Futuras (2025+)';
+      // Mostrar o mês atual no título
+      const now = new Date();
+      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const currentMonth = months[now.getMonth()];
+      const currentYear = now.getFullYear();
+      filterText = type === 'movie' ? `Próximos Lançamentos (${currentMonth}/${currentYear}+)` : `Séries Futuras (${currentMonth}/${currentYear}+)`;
       break;
     case 'in_theaters':
       filterText = type === 'movie' ? 'Em Cartaz nos Cinemas' : 'Séries no Ar';
