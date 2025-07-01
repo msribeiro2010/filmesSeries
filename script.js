@@ -1,8 +1,63 @@
 // ===== CONFIGURAÇÕES DA API =====
 const API_KEY = 'f5cc2dc1b4fcf4fd0192c0bd2ad8d2a8';
-// Usando proxy CORS para resolver o problema de produção
-const BASE_URL = 'https://cors-anywhere.herokuapp.com/https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
+// Lista de proxies CORS para tentar
+const CORS_PROXIES = [
+  '', // Tentar direto primeiro (pode funcionar em alguns casos)
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+
+let currentProxyIndex = 0;
+
+// Função para obter a URL base atual
+function getBaseURL() {
+  const proxy = CORS_PROXIES[currentProxyIndex];
+  if (proxy === '') {
+    return 'https://api.themoviedb.org/3';
+  }
+  return proxy + encodeURIComponent('https://api.themoviedb.org/3');
+}
+
+// Função para fazer fetch com fallback de proxies
+async function fetchWithFallback(endpoint) {
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    try {
+      currentProxyIndex = i;
+      const baseURL = getBaseURL();
+      const url = `${baseURL}${endpoint}`;
+      
+      console.log(`Tentativa ${i + 1}: ${url}`);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const text = await response.text();
+      
+      // Verificar se é JSON válido
+      try {
+        const data = JSON.parse(text);
+        console.log(`✅ Sucesso com proxy ${i + 1}`);
+        return data;
+      } catch (jsonError) {
+        console.log(`❌ Proxy ${i + 1} retornou HTML/texto inválido`);
+        throw new Error('Invalid JSON response');
+      }
+      
+    } catch (error) {
+      console.log(`❌ Proxy ${i + 1} falhou:`, error.message);
+      
+      if (i === CORS_PROXIES.length - 1) {
+        throw new Error('Todos os proxies falharam');
+      }
+    }
+  }
+}
 
 // Função para obter data atual no formato YYYY-MM-DD
 function getCurrentDate() {
@@ -95,13 +150,30 @@ async function loadInitialData() {
 // ===== FUNÇÕES DE CARREGAMENTO =====
 async function loadGenres(type) {
   try {
-    const response = await fetch(`${BASE_URL}/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`);
-    const data = await response.json();
+    const data = await fetchWithFallback(`/genre/${type}/list?api_key=${API_KEY}&language=pt-BR`);
     
     state.genres = data.genres || [];
     populateGenreFilter();
   } catch (error) {
     console.error('Erro ao carregar gêneros:', error);
+    // Fallback: usar gêneros hardcoded se a API falhar
+    state.genres = type === 'movie' ? [
+      {id: 28, name: 'Ação'}, {id: 12, name: 'Aventura'}, {id: 16, name: 'Animação'},
+      {id: 35, name: 'Comédia'}, {id: 80, name: 'Crime'}, {id: 99, name: 'Documentário'},
+      {id: 18, name: 'Drama'}, {id: 10751, name: 'Família'}, {id: 14, name: 'Fantasia'},
+      {id: 36, name: 'História'}, {id: 27, name: 'Terror'}, {id: 10402, name: 'Música'},
+      {id: 9648, name: 'Mistério'}, {id: 10749, name: 'Romance'}, {id: 878, name: 'Ficção científica'},
+      {id: 10770, name: 'Cinema TV'}, {id: 53, name: 'Thriller'}, {id: 10752, name: 'Guerra'},
+      {id: 37, name: 'Faroeste'}
+    ] : [
+      {id: 10759, name: 'Ação & Aventura'}, {id: 16, name: 'Animação'}, {id: 35, name: 'Comédia'},
+      {id: 80, name: 'Crime'}, {id: 99, name: 'Documentário'}, {id: 18, name: 'Drama'},
+      {id: 10751, name: 'Família'}, {id: 10762, name: 'Kids'}, {id: 9648, name: 'Mistério'},
+      {id: 10763, name: 'News'}, {id: 10764, name: 'Reality'}, {id: 10765, name: 'Sci-Fi & Fantasy'},
+      {id: 10766, name: 'Soap'}, {id: 10767, name: 'Talk'}, {id: 10768, name: 'War & Politics'},
+      {id: 37, name: 'Faroeste'}
+    ];
+    populateGenreFilter();
   }
 }
 
@@ -123,11 +195,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         if (type === 'movie') {
           // Para filmes: usar discover para ter mais controle sobre as datas
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=10`;
+          const endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=10`;
 
-          console.log('URL filmes futuros:', url);
-          const response = await fetch(url);
-          const data = await response.json();
+          console.log('Buscando filmes futuros...');
+          const data = await fetchWithFallback(endpoint);
 
           // Filtrar rigorosamente apenas filmes futuros
           results = (data.results || []).filter(item => {
@@ -142,9 +213,8 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
           // Se poucos resultados, buscar também de upcoming oficial
           if (results.length < 10) {
-            const upcomingUrl = `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=1`;
-            const upcomingResponse = await fetch(upcomingUrl);
-            const upcomingData = await upcomingResponse.json();
+            const upcomingEndpoint = `/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=1`;
+            const upcomingData = await fetchWithFallback(upcomingEndpoint);
 
             const futureUpcoming = (upcomingData.results || []).filter(item => {
               const releaseDate = item.release_date;
@@ -156,11 +226,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         } else {
           // Para séries: buscar séries que estrearão no futuro
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
+          const endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
 
-          console.log('URL séries futuras:', url);
-          const response = await fetch(url);
-          const data = await response.json();
+          console.log('Buscando séries futuras...');
+          const data = await fetchWithFallback(endpoint);
 
           results = (data.results || []).filter(item => {
             const airDate = item.first_air_date;
@@ -190,11 +259,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         if (type === 'movie') {
           // Para filmes: buscar filmes em cartaz nos cinemas
-          url = `${BASE_URL}/movie/now_playing?api_key=${API_KEY}&language=pt-BR&page=1`;
-          console.log('URL filmes em cartaz:', url);
+          const endpoint = `/movie/now_playing?api_key=${API_KEY}&language=pt-BR&page=1`;
+          console.log('Buscando filmes em cartaz...');
 
-          const response = await fetch(url);
-          const data = await response.json();
+          const data = await fetchWithFallback(endpoint);
 
                   // Filtrar apenas filmes recentes que estão em cartaz
         results = (data.results || []).filter(item => {
@@ -211,11 +279,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         } else {
           // Para séries: buscar séries que estão no ar atualmente
-          url = `${BASE_URL}/tv/on_the_air?api_key=${API_KEY}&language=pt-BR&page=1`;
-          console.log('URL séries no ar:', url);
+          const endpoint = `/tv/on_the_air?api_key=${API_KEY}&language=pt-BR&page=1`;
+          console.log('Buscando séries no ar...');
 
-          const response = await fetch(url);
-          const data = await response.json();
+          const data = await fetchWithFallback(endpoint);
 
           // Para séries no ar, mostrar todas (podem ser de qualquer ano mas estão ativas)
           results = data.results || [];
@@ -239,19 +306,18 @@ async function loadContent(type, genreId = '', filter = 'popular') {
         if (type === 'movie') {
           // Para filmes: buscar os mais populares recentes
           console.log('Buscando filmes mais populares recentes...');
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=${popularStartDate}`;
+          const endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=${popularStartDate}`;
 
-          console.log('URL filmes populares:', url);
+          console.log('Endpoint filmes populares:', endpoint);
         } else {
           // Para séries: focar nas que estrearam recentemente
           console.log('Buscando séries mais populares recentes...');
 
           // Buscar séries que estrearam recentemente
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=${popularStartDate}`;
+          const endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=${popularStartDate}`;
 
-          console.log('URL séries populares:', url);
-          const response = await fetch(url);
-          const data = await response.json();
+          console.log('Endpoint séries populares:', endpoint);
+          const data = await fetchWithFallback(endpoint);
 
           // Filtrar séries recentes
           results = (data.results || []).filter(series => {
@@ -268,9 +334,8 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           // Se poucos resultados, buscar mais páginas
           if (results.length < 15) {
             console.log('Poucos resultados, buscando página 2...');
-            const page2Url = url + '&page=2';
-            const page2Response = await fetch(page2Url);
-            const page2Data = await page2Response.json();
+            const page2Endpoint = endpoint + '&page=2';
+            const page2Data = await fetchWithFallback(page2Endpoint);
 
             const page2Results = (page2Data.results || []).filter(series => {
               const airDate = series.first_air_date;
@@ -293,16 +358,14 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         // Para filmes, executar a busca com múltiplas estratégias
         if (type === 'movie') {
-          // 1. Buscar filmes de 2025+ com alta popularidade
-          const popularResponse = await fetch(url);
-          const popularData = await popularResponse.json();
-          let movies2025 = popularData.results || [];
+          // 1. Buscar filmes recentes com alta popularidade
+          const popularData = await fetchWithFallback(endpoint);
+          let moviesRecent = popularData.results || [];
 
           // 2. Se poucos resultados, buscar filmes populares gerais e filtrar
-          if (movies2025.length < 10) {
-            const generalPopularUrl = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
-            const generalResponse = await fetch(generalPopularUrl);
-            const generalData = await generalResponse.json();
+          if (moviesRecent.length < 10) {
+            const generalPopularEndpoint = `/movie/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
+            const generalData = await fetchWithFallback(generalPopularEndpoint);
 
             // Filtrar apenas filmes recentes com boa avaliação
             const filteredRecentMovies = (generalData.results || []).filter(movie => {
@@ -310,21 +373,20 @@ async function loadContent(type, genreId = '', filter = 'popular') {
               return year >= (currentYear - 1) && movie.vote_average >= 7.0 && movie.popularity > 100;
             });
 
-            movies2025 = [...movies2025, ...filteredRecentMovies];
+            moviesRecent = [...moviesRecent, ...filteredRecentMovies];
           }
 
           // 3. Carregar mais páginas se ainda precisar
-          if (movies2025.length < 15 && popularData.total_pages > 1) {
-            const page2Response = await fetch(url + '&page=2');
-            const page2Data = await page2Response.json();
+          if (moviesRecent.length < 15 && popularData.total_pages > 1) {
+            const page2Data = await fetchWithFallback(endpoint + '&page=2');
             const page2Movies = (page2Data.results || []).filter(movie => {
               return movie.vote_average >= 7.0;
             });
-            movies2025 = [...movies2025, ...page2Movies];
+            moviesRecent = [...moviesRecent, ...page2Movies];
           }
 
           // Remover duplicatas e ordenar por popularidade
-          const uniqueMovies = movies2025.filter((movie, index, self) =>
+          const uniqueMovies = moviesRecent.filter((movie, index, self) =>
             index === self.findIndex(m => m.id === movie.id)
           );
 
@@ -371,26 +433,24 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
       if (type === 'movie') {
         // Para filmes: buscar do próximo ano
-        const urls = [
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${futureYear}`,
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${futureYear + 1}`
+        const endpoints = [
+          `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${futureYear}`,
+          `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${futureYear + 1}`
         ];
 
-        for (const url of urls) {
-          const response = await fetch(url);
-          const data = await response.json();
+        for (const endpoint of endpoints) {
+          const data = await fetchWithFallback(endpoint);
           results = [...results, ...(data.results || [])];
         }
       } else {
         // Para séries: buscar do próximo ano
-        const urls = [
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${futureYear}-01-01&first_air_date.lte=${futureYear}-12-31`,
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${futureYear + 1}-01-01&first_air_date.lte=${futureYear + 1}-12-31`
+        const endpoints = [
+          `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${futureYear}-01-01&first_air_date.lte=${futureYear}-12-31`,
+          `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${futureYear + 1}-01-01&first_air_date.lte=${futureYear + 1}-12-31`
         ];
 
-        for (const url of urls) {
-          const response = await fetch(url);
-          const data = await response.json();
+        for (const endpoint of endpoints) {
+          const data = await fetchWithFallback(endpoint);
           results = [...results, ...(data.results || [])];
         }
       }
@@ -407,10 +467,9 @@ async function loadContent(type, genreId = '', filter = 'popular') {
     const resultsWithStreaming = await Promise.all(
       results.slice(0, 20).map(async (item) => {
         try {
-          const providersResponse = await fetch(
-            `${BASE_URL}/${type}/${item.id}/watch/providers?api_key=${API_KEY}`
+          const providersData = await fetchWithFallback(
+            `/${type}/${item.id}/watch/providers?api_key=${API_KEY}`
           );
-          const providersData = await providersResponse.json();
           item.providers = providersData.results?.BR || null;
           return item;
         } catch (error) {
