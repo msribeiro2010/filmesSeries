@@ -103,13 +103,15 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
     switch (filter) {
       case 'upcoming':
-        // Próximos lançamentos - a partir do mês atual (julho 2025)
+        // Próximos lançamentos - sempre a partir do mês atual (dinâmico)
 
         // Obter data atual
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1; // getMonth() retorna 0-11
         const currentDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+
+        console.log(`🔄 Atualizando filtros para lançamentos a partir de ${currentDate} (${currentMonth}/${currentYear})`);
 
         if (type === 'movie') {
           // Para filmes: buscar lançamentos a partir do mês atual
@@ -190,15 +192,17 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           const response = await fetch(url);
           const data = await response.json();
 
-                  // Filtrar apenas filmes de 2025+ que estão em cartaz
-        results = (data.results || []).filter(item => {
-          const releaseDate = item.release_date;
-          if (!releaseDate) return false;
+          // Filtrar apenas filmes atuais que estão em cartaz
+          results = (data.results || []).filter(item => {
+            const releaseDate = item.release_date;
+            if (!releaseDate) return false;
 
-          const year = new Date(releaseDate).getFullYear();
-          const isRecent = year >= 2025;
+            const year = new Date(releaseDate).getFullYear();
+            const currentYear = new Date().getFullYear();
+            // Aceitar filmes do ano atual e próximo ano
+            const isRecent = year >= currentYear;
 
-          console.log(`Filme em cartaz: "${item.title}" - Data: ${releaseDate} (${year}) - 2025+: ${isRecent}`);
+            console.log(`Filme em cartaz: "${item.title}" - Data: ${releaseDate} (${year}) - Atual: ${isRecent}`);
             return isRecent;
           });
 
@@ -224,13 +228,15 @@ async function loadContent(type, genreId = '', filter = 'popular') {
         break;
 
       default: // popular
-        // Mais populares - a partir do mês atual (julho 2025)
+        // Mais populares - sempre a partir do mês atual (dinâmico)
 
         // Obter data atual para todos os filtros
         const popularCurrentDate = new Date();
         const popularCurrentYear = popularCurrentDate.getFullYear();
         const popularCurrentMonth = popularCurrentDate.getMonth() + 1;
         const fromDate = `${popularCurrentYear}-${popularCurrentMonth.toString().padStart(2, '0')}-01`;
+
+        console.log(`🔄 Filtrando conteúdo popular a partir de ${fromDate} (${popularCurrentMonth}/${popularCurrentYear})`);
 
         if (type === 'movie') {
           // Para filmes: buscar os mais populares a partir do mês atual
@@ -289,13 +295,13 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         // Para filmes, executar a busca com múltiplas estratégias
         if (type === 'movie') {
-          // 1. Buscar filmes de 2025+ com alta popularidade
+          // 1. Buscar filmes atuais+ com alta popularidade
           const popularResponse = await fetch(url);
           const popularData = await popularResponse.json();
-          let movies2025 = popularData.results || [];
+          let moviesActual = popularData.results || [];
 
           // 2. Se poucos resultados, buscar filmes populares gerais e filtrar
-          if (movies2025.length < 10) {
+          if (moviesActual.length < 10) {
             const generalPopularUrl = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
             const generalResponse = await fetch(generalPopularUrl);
             const generalData = await generalResponse.json();
@@ -308,21 +314,21 @@ async function loadContent(type, genreId = '', filter = 'popular') {
               return releaseDateTime >= popularCurrentDate && movie.vote_average >= 7.0 && movie.popularity > 100;
             });
 
-            movies2025 = [...movies2025, ...filteredCurrentMovies];
+            moviesActual = [...moviesActual, ...filteredCurrentMovies];
           }
 
           // 3. Carregar mais páginas se ainda precisar
-          if (movies2025.length < 15 && popularData.total_pages > 1) {
+          if (moviesActual.length < 15 && popularData.total_pages > 1) {
             const page2Response = await fetch(url + '&page=2');
             const page2Data = await page2Response.json();
             const page2Movies = (page2Data.results || []).filter(movie => {
               return movie.vote_average >= 7.0;
             });
-            movies2025 = [...movies2025, ...page2Movies];
+            moviesActual = [...moviesActual, ...page2Movies];
           }
 
           // Remover duplicatas e ordenar por popularidade
-          const uniqueMovies = movies2025.filter((movie, index, self) =>
+          const uniqueMovies = moviesActual.filter((movie, index, self) =>
             index === self.findIndex(m => m.id === movie.id)
           );
 
@@ -342,16 +348,22 @@ async function loadContent(type, genreId = '', filter = 'popular') {
       );
     }
 
-    // FILTRO FINAL: Para próximos lançamentos, garantir que sejam futuros; para outros, garantir que sejam de 2025+
+    // FILTRO FINAL DINÂMICO: Sempre baseado na data atual
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth(); // 0-11
+    
     results = results.filter(item => {
       const date = item.release_date || item.first_air_date;
       if (!date) return false;
 
+      const itemDate = new Date(date);
+      const itemYear = itemDate.getFullYear();
+      const itemMonth = itemDate.getMonth();
+
       if (filter === 'upcoming') {
         // Para próximos lançamentos, filtrar apenas conteúdo futuro
-        const itemDate = new Date(date);
-        const now = new Date();
-        const isFuture = itemDate >= now;
+        const isFuture = itemDate >= currentDate;
 
         if (!isFuture) {
           console.log(`Removendo "${item.title || item.name}" (${date}) - não é futuro`);
@@ -359,30 +371,34 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         return isFuture;
       } else {
-        // Para outros filtros, usar a lógica do mês atual também
-        const itemDate = new Date(date);
-        const now = new Date();
-        const isCurrent = itemDate >= now;
+        // Para outros filtros, aceitar:
+        // 1. Mesmo ano, mês atual ou posterior
+        // 2. Anos futuros
+        const isCurrentOrFuture = (itemYear > currentYear) || 
+                                  (itemYear === currentYear && itemMonth >= currentMonth);
 
-        if (!isCurrent) {
-          console.log(`Removendo "${item.title || item.name}" (${date}) - não é atual`);
+        if (!isCurrentOrFuture) {
+          console.log(`Removendo "${item.title || item.name}" (${date}) - não é do período atual/futuro`);
         }
 
-        return isCurrent;
+        return isCurrentOrFuture;
       }
     });
 
     console.log(`Após filtro final: ${results.length} itens ${filter === 'upcoming' ? 'futuros' : 'atuais'}`);
 
-    // Se não houver resultados atuais, buscar especificamente
+    // Se não houver resultados atuais, buscar especificamente para o ano atual e próximos
     if (results.length === 0) {
-      console.log('Nenhum resultado atual encontrado, buscando especificamente...');
+      const searchYear = new Date().getFullYear();
+      const nextYear = searchYear + 1;
+      
+      console.log(`Nenhum resultado atual encontrado, buscando especificamente para ${searchYear} e ${nextYear}...`);
 
       if (type === 'movie') {
-        // Para filmes: buscar especificamente 2025 e 2026
+        // Para filmes: buscar especificamente ano atual e próximo
         const urls = [
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=2025`,
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=2026`
+          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${searchYear}`,
+          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${nextYear}`
         ];
 
         for (const url of urls) {
@@ -391,10 +407,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           results = [...results, ...(data.results || [])];
         }
       } else {
-        // Para séries: buscar especificamente 2025 e 2026
+        // Para séries: buscar especificamente ano atual e próximo
         const urls = [
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=2025-01-01&first_air_date.lte=2025-12-31`,
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=2026-01-01&first_air_date.lte=2026-12-31`
+          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${searchYear}-01-01&first_air_date.lte=${searchYear}-12-31`,
+          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${nextYear}-01-01&first_air_date.lte=${nextYear}-12-31`
         ];
 
         for (const url of urls) {
@@ -458,29 +474,37 @@ function displayContent(items) {
 
   elements.contentGrid.innerHTML = '';
 
-  // FILTRO FINAL DE SEGURANÇA: Garantir que apenas conteúdo de 2025+ seja exibido
-  const filtered2025Items = items.filter(item => {
+  // FILTRO FINAL DE SEGURANÇA: Garantir que apenas conteúdo atual/futuro seja exibido
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth(); // 0-11
+  
+  const filteredCurrentItems = items.filter(item => {
     const date = item.release_date || item.first_air_date;
     if (!date) return false;
 
-    const year = new Date(date).getFullYear();
-    const isValid = year >= 2025;
+    const itemDate = new Date(date);
+    const itemYear = itemDate.getFullYear();
+    const itemMonth = itemDate.getMonth();
+    
+    // Aceitar conteúdo do ano atual (mês atual+) ou anos futuros
+    const isValid = (itemYear > currentYear) || 
+                    (itemYear === currentYear && itemMonth >= currentMonth);
 
     if (!isValid) {
-      console.warn(`BLOQUEADO: "${item.title || item.name}" (${year}) - não é de 2025+`);
+      console.warn(`BLOQUEADO: "${item.title || item.name}" (${itemMonth + 1}/${itemYear}) - anterior ao período atual`);
     }
 
     return isValid;
   });
 
-  console.log(`Exibindo ${filtered2025Items.length} itens de 2025+ (filtrados de ${items.length} originais)`);
+  console.log(`Exibindo ${filteredCurrentItems.length} itens atuais/futuros (filtrados de ${items.length} originais)`);
 
-  if (filtered2025Items.length === 0) {
+  if (filteredCurrentItems.length === 0) {
     showNoResults();
     return;
   }
 
-  filtered2025Items.forEach(item => {
+  filteredCurrentItems.forEach(item => {
     const card = createCard(item);
     elements.contentGrid.appendChild(card);
   });
@@ -499,15 +523,18 @@ function createCard(item) {
   const date = item.release_date || item.first_air_date;
   const year = date ? new Date(date).getFullYear() : '';
   const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
-  const isRecent = year >= 2025;
-  const isFuture = year >= 2026;
+  
+  // Determinar se é conteúdo recente/novo baseado no ano atual
+  const currentYear = new Date().getFullYear();
+  const isRecent = year >= currentYear;
+  const isFuture = year > currentYear;
 
   // Formatar data completa (mês/ano)
   const formattedDate = formatReleaseDate(date);
 
-  // VERIFICAÇÃO FINAL: Se não for de 2025+, não criar o card
-  if (year < 2025) {
-    console.warn(`Conteúdo anterior a 2025 bloqueado: "${title}" (${year})`);
+  // VERIFICAÇÃO FINAL: Se não for do período atual/futuro, não criar o card
+  if (year && year < currentYear) {
+    console.warn(`Conteúdo anterior ao ano atual bloqueado: "${title}" (${year})`);
     return document.createElement('div'); // Retorna div vazia
   }
 
@@ -525,7 +552,7 @@ function createCard(item) {
         ${rating}
       </div>
       ${isRecent ? '<div class="card-new-badge">NOVO</div>' : ''}
-      ${isFuture ? '<div class="card-future-badge">2026+</div>' : ''}
+      ${isFuture ? `<div class="card-future-badge">${year}+</div>` : ''}
     </div>
     <div class="card-content">
       <h3 class="card-title">${title}</h3>
