@@ -111,62 +111,18 @@ async function loadContent(type, genreId = '', filter = 'popular') {
         const currentMonth = now.getMonth() + 1; // getMonth() retorna 0-11
         const currentDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
 
-        console.log(`🔄 Atualizando filtros para lançamentos a partir de ${currentDate} (${currentMonth}/${currentYear})`);
-
         if (type === 'movie') {
-          // Para filmes: buscar lançamentos a partir do mês atual
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=10`;
-
-          console.log(`URL filmes futuros (a partir de ${currentDate}):`, url);
+          // Para filmes: buscar próximos lançamentos
+          url = `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=1`;
           const response = await fetch(url);
           const data = await response.json();
-
-          // Filtrar apenas filmes que ainda não foram lançados
-          results = (data.results || []).filter(item => {
-            const releaseDate = item.release_date;
-            if (!releaseDate) return false;
-
-            const releaseDateTime = new Date(releaseDate);
-            const isFuture = releaseDateTime >= now;
-
-            console.log(`Filme: "${item.title}" - Data: ${releaseDate} - É futuro: ${isFuture}`);
-            return isFuture;
-          });
-
-          // Se poucos resultados, buscar também de upcoming oficial
-          if (results.length < 10) {
-            const upcomingUrl = `${BASE_URL}/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=1`;
-            const upcomingResponse = await fetch(upcomingUrl);
-            const upcomingData = await upcomingResponse.json();
-
-            const futureUpcoming = (upcomingData.results || []).filter(item => {
-              const releaseDate = item.release_date;
-              if (!releaseDate) return false;
-              const releaseDateTime = new Date(releaseDate);
-              return releaseDateTime >= now;
-            });
-
-            results = [...results, ...futureUpcoming];
-          }
-
+          results = data.results || [];
         } else {
-          // Para séries: buscar séries que estrearão a partir do mês atual
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
-
-          console.log(`URL séries futuras (a partir de ${currentDate}):`, url);
+          // Para séries: buscar séries que estrearão em breve
+          url = `${BASE_URL}/tv/on_the_air?api_key=${API_KEY}&language=pt-BR&page=1`;
           const response = await fetch(url);
           const data = await response.json();
-
-          results = (data.results || []).filter(item => {
-            const airDate = item.first_air_date;
-            if (!airDate) return false;
-
-            const airDateTime = new Date(airDate);
-            const isFuture = airDateTime >= now;
-
-            console.log(`Série: "${item.name}" - Data: ${airDate} - É futuro: ${isFuture}`);
-            return isFuture;
-          });
+          results = data.results || [];
         }
 
         // Remover duplicatas e ordenar por data de lançamento
@@ -236,108 +192,20 @@ async function loadContent(type, genreId = '', filter = 'popular') {
         const popularCurrentMonth = popularCurrentDate.getMonth() + 1;
         const fromDate = `${popularCurrentYear}-${popularCurrentMonth.toString().padStart(2, '0')}-01`;
 
-        console.log(`🔄 Filtrando conteúdo popular a partir de ${fromDate} (${popularCurrentMonth}/${popularCurrentYear})`);
-
         if (type === 'movie') {
-          // Para filmes: buscar os mais populares a partir do mês atual
-          console.log(`Buscando filmes mais populares (a partir de ${fromDate})...`);
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=${fromDate}`;
-
-          console.log('URL filmes populares:', url);
-        } else {
-          // Para séries: focar apenas nas que estrearam a partir do mês atual
-          console.log(`Buscando séries mais populares (a partir de ${fromDate})...`);
-
-          // Buscar séries que estrearam especificamente a partir do mês atual
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=${fromDate}`;
-
-          console.log('URL séries populares:', url);
+          // Para filmes: buscar os mais populares
+          url = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
           const response = await fetch(url);
           const data = await response.json();
-
-          // Filtrar rigorosamente apenas séries a partir do mês atual
-          results = (data.results || []).filter(series => {
-            const airDate = series.first_air_date;
-            if (!airDate) return false;
-
-            const airDateTime = new Date(airDate);
-            const isCurrent = airDateTime >= popularCurrentDate;
-
-            console.log(`Série: "${series.name}" - Data: ${airDate} - Atual+: ${isCurrent} - Popularidade: ${series.popularity}`);
-            return isCurrent;
-          });
-
-          // Se poucos resultados, buscar mais páginas
-          if (results.length < 15) {
-            console.log('Poucos resultados, buscando página 2...');
-            const page2Url = url + '&page=2';
-            const page2Response = await fetch(page2Url);
-            const page2Data = await page2Response.json();
-
-            const page2Results = (page2Data.results || []).filter(series => {
-              const airDate = series.first_air_date;
-              if (!airDate) return false;
-              const airDateTime = new Date(airDate);
-              return airDateTime >= popularCurrentDate;
-            });
-
-            results = [...results, ...page2Results];
-          }
-
-          // Remover duplicatas e ordenar por popularidade
-          results = results.filter((series, index, self) =>
-            index === self.findIndex(s => s.id === series.id)
-          ).sort((a, b) => b.popularity - a.popularity);
-
-          console.log(`Encontradas ${results.length} séries populares atuais`);
-          break;
+          results = data.results || [];
+        } else {
+          // Para séries: buscar as mais populares
+          url = `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
+          const response = await fetch(url);
+          const data = await response.json();
+          results = data.results || [];
         }
 
-        // Para filmes, executar a busca com múltiplas estratégias
-        if (type === 'movie') {
-          // 1. Buscar filmes atuais+ com alta popularidade
-          const popularResponse = await fetch(url);
-          const popularData = await popularResponse.json();
-          let moviesActual = popularData.results || [];
-
-          // 2. Se poucos resultados, buscar filmes populares gerais e filtrar
-          if (moviesActual.length < 10) {
-            const generalPopularUrl = `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
-            const generalResponse = await fetch(generalPopularUrl);
-            const generalData = await generalResponse.json();
-
-            // Filtrar apenas filmes atuais com boa avaliação
-            const filteredCurrentMovies = (generalData.results || []).filter(movie => {
-              const releaseDate = movie.release_date;
-              if (!releaseDate) return false;
-              const releaseDateTime = new Date(releaseDate);
-              return releaseDateTime >= popularCurrentDate && movie.vote_average >= 7.0 && movie.popularity > 100;
-            });
-
-            moviesActual = [...moviesActual, ...filteredCurrentMovies];
-          }
-
-          // 3. Carregar mais páginas se ainda precisar
-          if (moviesActual.length < 15 && popularData.total_pages > 1) {
-            const page2Response = await fetch(url + '&page=2');
-            const page2Data = await page2Response.json();
-            const page2Movies = (page2Data.results || []).filter(movie => {
-              return movie.vote_average >= 7.0;
-            });
-            moviesActual = [...moviesActual, ...page2Movies];
-          }
-
-          // Remover duplicatas e ordenar por popularidade
-          const uniqueMovies = moviesActual.filter((movie, index, self) =>
-            index === self.findIndex(m => m.id === movie.id)
-          );
-
-          results = uniqueMovies
-            .sort((a, b) => b.popularity - a.popularity)
-            .slice(0, 20); // Limitar a 20 filmes mais populares
-
-          console.log(`Encontrados ${results.length} filmes populares atuais`);
-        }
         break;
     }
 
@@ -348,84 +216,24 @@ async function loadContent(type, genreId = '', filter = 'popular') {
       );
     }
 
-    // FILTRO FINAL DINÂMICO: Sempre baseado na data atual
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth(); // 0-11
-    
-    results = results.filter(item => {
-      const date = item.release_date || item.first_air_date;
-      if (!date) return false;
-
-      const itemDate = new Date(date);
-      const itemYear = itemDate.getFullYear();
-      const itemMonth = itemDate.getMonth();
-
-      if (filter === 'upcoming') {
-        // Para próximos lançamentos, filtrar apenas conteúdo futuro
-        const isFuture = itemDate >= currentDate;
-
-        if (!isFuture) {
-          console.log(`Removendo "${item.title || item.name}" (${date}) - não é futuro`);
-        }
-
-        return isFuture;
-      } else {
-        // Para outros filtros, aceitar:
-        // 1. Mesmo ano, mês atual ou posterior
-        // 2. Anos futuros
-        const isCurrentOrFuture = (itemYear > currentYear) || 
-                                  (itemYear === currentYear && itemMonth >= currentMonth);
-
-        if (!isCurrentOrFuture) {
-          console.log(`Removendo "${item.title || item.name}" (${date}) - não é do período atual/futuro`);
-        }
-
-        return isCurrentOrFuture;
-      }
-    });
+    // Usar todos os resultados da API (elas já vêm filtradas)
+    console.log(`Usando ${results.length} resultados da API`);
 
     console.log(`Após filtro final: ${results.length} itens ${filter === 'upcoming' ? 'futuros' : 'atuais'}`);
 
-    // Se não houver resultados atuais, buscar especificamente para o ano atual e próximos
+    // Se não houver resultados, buscar conteúdo popular geral como fallback
     if (results.length === 0) {
-      const searchYear = new Date().getFullYear();
-      const nextYear = searchYear + 1;
-      
-      console.log(`Nenhum resultado atual encontrado, buscando especificamente para ${searchYear} e ${nextYear}...`);
+      console.log('Nenhum resultado encontrado, buscando conteúdo popular geral...');
 
-      if (type === 'movie') {
-        // Para filmes: buscar especificamente ano atual e próximo
-        const urls = [
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${searchYear}`,
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${nextYear}`
-        ];
+      const fallbackUrl = type === 'movie' 
+        ? `${BASE_URL}/movie/popular?api_key=${API_KEY}&language=pt-BR&page=1`
+        : `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=pt-BR&page=1`;
 
-        for (const url of urls) {
-          const response = await fetch(url);
-          const data = await response.json();
-          results = [...results, ...(data.results || [])];
-        }
-      } else {
-        // Para séries: buscar especificamente ano atual e próximo
-        const urls = [
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${searchYear}-01-01&first_air_date.lte=${searchYear}-12-31`,
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${nextYear}-01-01&first_air_date.lte=${nextYear}-12-31`
-        ];
+      const fallbackResponse = await fetch(fallbackUrl);
+      const fallbackData = await fallbackResponse.json();
+      results = (fallbackData.results || []).slice(0, 20);
 
-        for (const url of urls) {
-          const response = await fetch(url);
-          const data = await response.json();
-          results = [...results, ...(data.results || [])];
-        }
-      }
-
-      // Remover duplicatas
-      results = results.filter((item, index, self) =>
-        index === self.findIndex(i => i.id === item.id)
-      );
-
-      console.log(`Após busca específica: ${results.length} itens encontrados`);
+      console.log(`Fallback: ${results.length} itens populares encontrados`);
     }
 
     // Buscar informações de streaming para cada item
@@ -448,8 +256,14 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
     displayContent(resultsWithStreaming);
   } catch (error) {
-    console.error('Erro ao carregar conteúdo:', error);
-    showError('Erro ao carregar dados. Tente novamente.');
+    console.error('Erro detalhado ao carregar conteúdo:', {
+      message: error.message,
+      stack: error.stack,
+      type: type,
+      genreId: genreId,
+      filter: filter
+    });
+    showError(`Erro ao carregar dados: ${error.message}. Tente novamente.`);
   } finally {
     setLoading(false);
   }
@@ -474,37 +288,15 @@ function displayContent(items) {
 
   elements.contentGrid.innerHTML = '';
 
-  // FILTRO FINAL DE SEGURANÇA: Garantir que apenas conteúdo atual/futuro seja exibido
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth(); // 0-11
-  
-  const filteredCurrentItems = items.filter(item => {
-    const date = item.release_date || item.first_air_date;
-    if (!date) return false;
+  // Exibir todos os itens que chegaram até aqui (já foram filtrados antes)
+  console.log(`Exibindo ${items.length} itens`);
 
-    const itemDate = new Date(date);
-    const itemYear = itemDate.getFullYear();
-    const itemMonth = itemDate.getMonth();
-    
-    // Aceitar conteúdo do ano atual (mês atual+) ou anos futuros
-    const isValid = (itemYear > currentYear) || 
-                    (itemYear === currentYear && itemMonth >= currentMonth);
-
-    if (!isValid) {
-      console.warn(`BLOQUEADO: "${item.title || item.name}" (${itemMonth + 1}/${itemYear}) - anterior ao período atual`);
-    }
-
-    return isValid;
-  });
-
-  console.log(`Exibindo ${filteredCurrentItems.length} itens atuais/futuros (filtrados de ${items.length} originais)`);
-
-  if (filteredCurrentItems.length === 0) {
+  if (items.length === 0) {
     showNoResults();
     return;
   }
 
-  filteredCurrentItems.forEach(item => {
+  items.forEach(item => {
     const card = createCard(item);
     elements.contentGrid.appendChild(card);
   });
@@ -532,11 +324,7 @@ function createCard(item) {
   // Formatar data completa (mês/ano)
   const formattedDate = formatReleaseDate(date);
 
-  // VERIFICAÇÃO FINAL: Se não for do período atual/futuro, não criar o card
-  if (year && year < currentYear) {
-    console.warn(`Conteúdo anterior ao ano atual bloqueado: "${title}" (${year})`);
-    return document.createElement('div'); // Retorna div vazia
-  }
+  // Aceitar todos os conteúdos que chegaram até aqui (já filtrados antes)
 
   // Encontrar gênero principal
   const mainGenre = getMainGenre(item.genre_ids);
