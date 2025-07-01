@@ -1,7 +1,21 @@
 // ===== CONFIGURAÇÕES DA API =====
 const API_KEY = 'f5cc2dc1b4fcf4fd0192c0bd2ad8d2a8';
-const BASE_URL = 'https://api.themoviedb.org/3';
+// Usando proxy CORS para resolver o problema de produção
+const BASE_URL = 'https://cors-anywhere.herokuapp.com/https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
+// Função para obter data atual no formato YYYY-MM-DD
+function getCurrentDate() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Função para verificar se uma data é futura
+function isFutureDate(dateString) {
+  if (!dateString) return false;
+  const releaseDate = new Date(dateString);
+  const now = new Date();
+  return releaseDate >= now;
+}
 
 // ===== ESTADO DA APLICAÇÃO =====
 const state = {
@@ -103,25 +117,26 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
     switch (filter) {
       case 'upcoming':
-        // Lançamentos futuros (2025 em diante)
+        // Lançamentos futuros (a partir da data atual)
+        const currentDate = getCurrentDate();
+        console.log('Buscando lançamentos futuros a partir de:', currentDate);
 
         if (type === 'movie') {
           // Para filmes: usar discover para ter mais controle sobre as datas
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=2025-01-01&vote_count.gte=10`;
+          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=10`;
 
           console.log('URL filmes futuros:', url);
           const response = await fetch(url);
           const data = await response.json();
 
-          // Filtrar rigorosamente apenas filmes de 2025+
+          // Filtrar rigorosamente apenas filmes futuros
           results = (data.results || []).filter(item => {
             const releaseDate = item.release_date;
             if (!releaseDate) return false;
 
-            const year = new Date(releaseDate).getFullYear();
-            const isFuture = year >= 2025;
+            const isFuture = isFutureDate(releaseDate);
 
-            console.log(`Filme: "${item.title}" - Data: ${releaseDate} (${year}) - Futuro: ${isFuture}`);
+            console.log(`Filme: "${item.title}" - Data: ${releaseDate} - Futuro: ${isFuture}`);
             return isFuture;
           });
 
@@ -133,15 +148,15 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
             const futureUpcoming = (upcomingData.results || []).filter(item => {
               const releaseDate = item.release_date;
-              return releaseDate && new Date(releaseDate).getFullYear() >= 2025;
+              return releaseDate && isFutureDate(releaseDate);
             });
 
             results = [...results, ...futureUpcoming];
           }
 
         } else {
-          // Para séries: buscar séries que estrearão em 2025+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=5`;
+          // Para séries: buscar séries que estrearão no futuro
+          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
 
           console.log('URL séries futuras:', url);
           const response = await fetch(url);
@@ -151,10 +166,9 @@ async function loadContent(type, genreId = '', filter = 'popular') {
             const airDate = item.first_air_date;
             if (!airDate) return false;
 
-            const year = new Date(airDate).getFullYear();
-            const isFuture = year >= 2025;
+            const isFuture = isFutureDate(airDate);
 
-            console.log(`Série: "${item.name}" - Data: ${airDate} (${year}) - Futuro: ${isFuture}`);
+            console.log(`Série: "${item.name}" - Data: ${airDate} - Futuro: ${isFuture}`);
             return isFuture;
           });
         }
@@ -182,15 +196,16 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           const response = await fetch(url);
           const data = await response.json();
 
-                  // Filtrar apenas filmes de 2025+ que estão em cartaz
+                  // Filtrar apenas filmes recentes que estão em cartaz
         results = (data.results || []).filter(item => {
           const releaseDate = item.release_date;
           if (!releaseDate) return false;
 
           const year = new Date(releaseDate).getFullYear();
-          const isRecent = year >= 2025;
+          const currentYear = new Date().getFullYear();
+          const isRecent = year >= (currentYear - 1); // Filmes do ano passado para frente
 
-          console.log(`Filme em cartaz: "${item.title}" - Data: ${releaseDate} (${year}) - 2025+: ${isRecent}`);
+          console.log(`Filme em cartaz: "${item.title}" - Data: ${releaseDate} (${year}) - Recente: ${isRecent}`);
             return isRecent;
           });
 
@@ -216,35 +231,38 @@ async function loadContent(type, genreId = '', filter = 'popular') {
         break;
 
       default: // popular
-        // Mais populares de 2025 em diante
+        // Mais populares recentes e futuros
+        const popularCurrentDate = getCurrentDate();
+        const currentYear = new Date().getFullYear();
+        const popularStartDate = `${currentYear - 1}-01-01`; // Do ano passado em diante
 
         if (type === 'movie') {
-          // Para filmes: buscar os mais populares de 2025+
-          console.log('Buscando filmes mais populares de 2025+...');
-          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=2025-01-01`;
+          // Para filmes: buscar os mais populares recentes
+          console.log('Buscando filmes mais populares recentes...');
+          url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=100&vote_average.gte=6.5&primary_release_date.gte=${popularStartDate}`;
 
           console.log('URL filmes populares:', url);
         } else {
-          // Para séries: focar apenas nas que estrearam em 2025+
-          console.log('Buscando séries mais populares de 2025+...');
+          // Para séries: focar nas que estrearam recentemente
+          console.log('Buscando séries mais populares recentes...');
 
-          // Buscar séries que estrearam especificamente em 2025+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=2025-01-01`;
+          // Buscar séries que estrearam recentemente
+          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=${popularStartDate}`;
 
           console.log('URL séries populares:', url);
           const response = await fetch(url);
           const data = await response.json();
 
-          // Filtrar rigorosamente apenas séries de 2025+
+          // Filtrar séries recentes
           results = (data.results || []).filter(series => {
             const airDate = series.first_air_date;
             if (!airDate) return false;
 
             const year = new Date(airDate).getFullYear();
-            const is2025Plus = year >= 2025;
+            const isRecent = year >= (currentYear - 1);
 
-            console.log(`Série: "${series.name}" - Data: ${airDate} (${year}) - 2025+: ${is2025Plus} - Popularidade: ${series.popularity}`);
-            return is2025Plus;
+            console.log(`Série: "${series.name}" - Data: ${airDate} (${year}) - Recente: ${isRecent} - Popularidade: ${series.popularity}`);
+            return isRecent;
           });
 
           // Se poucos resultados, buscar mais páginas
@@ -258,7 +276,7 @@ async function loadContent(type, genreId = '', filter = 'popular') {
               const airDate = series.first_air_date;
               if (!airDate) return false;
               const year = new Date(airDate).getFullYear();
-              return year >= 2025;
+              return year >= (currentYear - 1);
             });
 
             results = [...results, ...page2Results];
@@ -269,7 +287,7 @@ async function loadContent(type, genreId = '', filter = 'popular') {
             index === self.findIndex(s => s.id === series.id)
           ).sort((a, b) => b.popularity - a.popularity);
 
-          console.log(`Encontradas ${results.length} séries populares de 2025+`);
+          console.log(`Encontradas ${results.length} séries populares recentes`);
           break;
         }
 
@@ -286,13 +304,13 @@ async function loadContent(type, genreId = '', filter = 'popular') {
             const generalResponse = await fetch(generalPopularUrl);
             const generalData = await generalResponse.json();
 
-            // Filtrar apenas filmes de 2025+ com boa avaliação
-            const filtered2025Movies = (generalData.results || []).filter(movie => {
+            // Filtrar apenas filmes recentes com boa avaliação
+            const filteredRecentMovies = (generalData.results || []).filter(movie => {
               const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 0;
-              return year >= 2025 && movie.vote_average >= 7.0 && movie.popularity > 100;
+              return year >= (currentYear - 1) && movie.vote_average >= 7.0 && movie.popularity > 100;
             });
 
-            movies2025 = [...movies2025, ...filtered2025Movies];
+            movies2025 = [...movies2025, ...filteredRecentMovies];
           }
 
           // 3. Carregar mais páginas se ainda precisar
@@ -314,7 +332,7 @@ async function loadContent(type, genreId = '', filter = 'popular') {
             .sort((a, b) => b.popularity - a.popularity)
             .slice(0, 20); // Limitar a 20 filmes mais populares
 
-          console.log(`Encontrados ${results.length} filmes populares de 2025+`);
+          console.log(`Encontrados ${results.length} filmes populares recentes`);
         }
         break;
     }
@@ -326,32 +344,36 @@ async function loadContent(type, genreId = '', filter = 'popular') {
       );
     }
 
-    // FILTRO FINAL: Garantir que TODOS os resultados sejam de 2025+
-    results = results.filter(item => {
-      const date = item.release_date || item.first_air_date;
-      if (!date) return false;
+    // FILTRO FINAL: Para próximos lançamentos, garantir que sejam futuros
+    if (filter === 'upcoming') {
+      results = results.filter(item => {
+        const date = item.release_date || item.first_air_date;
+        if (!date) return false;
 
-      const year = new Date(date).getFullYear();
-      const isFrom2025Plus = year >= 2025;
+        const isFuture = isFutureDate(date);
 
-      if (!isFrom2025Plus) {
-        console.log(`Removendo "${item.title || item.name}" (${year}) - não é de 2025+`);
-      }
+        if (!isFuture) {
+          console.log(`Removendo "${item.title || item.name}" (${date}) - não é futuro`);
+        }
 
-      return isFrom2025Plus;
-    });
+        return isFuture;
+      });
 
-    console.log(`Após filtro final: ${results.length} itens de 2025+`);
+      console.log(`Após filtro final: ${results.length} itens futuros`);
+    } else {
+      console.log(`Após filtro final: ${results.length} itens encontrados`);
+    }
 
-    // Se não houver resultados de 2025+, buscar especificamente
-    if (results.length === 0) {
-      console.log('Nenhum resultado de 2025+ encontrado, buscando especificamente...');
+    // Se não houver resultados, buscar com critérios mais amplos
+    if (results.length === 0 && filter === 'upcoming') {
+      console.log('Nenhum resultado futuro encontrado, buscando com critérios mais amplos...');
+      const futureYear = new Date().getFullYear() + 1;
 
       if (type === 'movie') {
-        // Para filmes: buscar especificamente 2025 e 2026
+        // Para filmes: buscar do próximo ano
         const urls = [
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=2025`,
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=2026`
+          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${futureYear}`,
+          `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&primary_release_year=${futureYear + 1}`
         ];
 
         for (const url of urls) {
@@ -360,10 +382,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           results = [...results, ...(data.results || [])];
         }
       } else {
-        // Para séries: buscar especificamente 2025 e 2026
+        // Para séries: buscar do próximo ano
         const urls = [
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=2025-01-01&first_air_date.lte=2025-12-31`,
-          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=2026-01-01&first_air_date.lte=2026-12-31`
+          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${futureYear}-01-01&first_air_date.lte=${futureYear}-12-31`,
+          `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&first_air_date.gte=${futureYear + 1}-01-01&first_air_date.lte=${futureYear + 1}-12-31`
         ];
 
         for (const url of urls) {
@@ -427,29 +449,34 @@ function displayContent(items) {
 
   elements.contentGrid.innerHTML = '';
 
-  // FILTRO FINAL DE SEGURANÇA: Garantir que apenas conteúdo de 2025+ seja exibido
-  const filtered2025Items = items.filter(item => {
-    const date = item.release_date || item.first_air_date;
-    if (!date) return false;
+  // FILTRO FINAL DE SEGURANÇA: Para próximos lançamentos, garantir que sejam futuros
+  let finalItems = items;
+  
+  if (state.currentFilter === 'upcoming') {
+    finalItems = items.filter(item => {
+      const date = item.release_date || item.first_air_date;
+      if (!date) return false;
 
-    const year = new Date(date).getFullYear();
-    const isValid = year >= 2025;
+      const isFuture = isFutureDate(date);
 
-    if (!isValid) {
-      console.warn(`BLOQUEADO: "${item.title || item.name}" (${year}) - não é de 2025+`);
-    }
+      if (!isFuture) {
+        console.warn(`BLOQUEADO: "${item.title || item.name}" (${date}) - não é futuro`);
+      }
 
-    return isValid;
-  });
+      return isFuture;
+    });
+    
+    console.log(`Exibindo ${finalItems.length} itens futuros (filtrados de ${items.length} originais)`);
+  } else {
+    console.log(`Exibindo ${finalItems.length} itens`);
+  }
 
-  console.log(`Exibindo ${filtered2025Items.length} itens de 2025+ (filtrados de ${items.length} originais)`);
-
-  if (filtered2025Items.length === 0) {
+  if (finalItems.length === 0) {
     showNoResults();
     return;
   }
 
-  filtered2025Items.forEach(item => {
+  finalItems.forEach(item => {
     const card = createCard(item);
     elements.contentGrid.appendChild(card);
   });
@@ -468,15 +495,16 @@ function createCard(item) {
   const date = item.release_date || item.first_air_date;
   const year = date ? new Date(date).getFullYear() : '';
   const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
-  const isRecent = year >= 2025;
-  const isFuture = year >= 2026;
+  const currentYear = new Date().getFullYear();
+  const isRecent = year >= currentYear;
+  const isFuture = year >= (currentYear + 1);
 
   // Formatar data completa (mês/ano)
   const formattedDate = formatReleaseDate(date);
 
-  // VERIFICAÇÃO FINAL: Se não for de 2025+, não criar o card
-  if (year < 2025) {
-    console.warn(`Conteúdo anterior a 2025 bloqueado: "${title}" (${year})`);
+  // VERIFICAÇÃO FINAL: Para próximos lançamentos, verificar se é futuro
+  if (state.currentFilter === 'upcoming' && !isFutureDate(date)) {
+    console.warn(`Conteúdo não-futuro bloqueado: "${title}" (${date})`);
     return document.createElement('div'); // Retorna div vazia
   }
 
@@ -690,13 +718,13 @@ function updateSectionTitle(type, genreId = '', filter = 'popular') {
   let filterText = '';
   switch (filter) {
     case 'upcoming':
-      filterText = type === 'movie' ? 'Próximos Lançamentos (2025+)' : 'Séries Futuras (2025+)';
+      filterText = type === 'movie' ? 'Próximos Lançamentos' : 'Séries Futuras';
       break;
     case 'in_theaters':
       filterText = type === 'movie' ? 'Em Cartaz nos Cinemas' : 'Séries no Ar';
       break;
     default:
-      filterText = type === 'movie' ? 'Filmes Populares (2025+)' : 'Séries Populares (2025+)';
+      filterText = type === 'movie' ? 'Filmes Populares' : 'Séries Populares';
   }
 
   if (genreId) {
@@ -719,11 +747,19 @@ function setLoading(loading) {
 }
 
 function showNoResults() {
+  let message = 'Nenhum conteúdo encontrado';
+  let description = 'Não encontramos filmes ou séries para os filtros selecionados.';
+  
+  if (state.currentFilter === 'upcoming') {
+    message = 'Nenhum lançamento futuro encontrado';
+    description = 'Não encontramos próximos lançamentos para os filtros selecionados.';
+  }
+  
   elements.contentGrid.innerHTML = `
     <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);">
       <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-      <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Nenhum conteúdo de 2025+ encontrado</h3>
-      <p>Não encontramos filmes ou séries de 2025 em diante para os filtros selecionados.</p>
+      <h3 style="margin-bottom: 1rem; color: var(--text-primary);">${message}</h3>
+      <p>${description}</p>
       <p style="margin-top: 0.5rem; font-size: 0.9rem;">Tente alterar os filtros ou aguarde novos lançamentos.</p>
     </div>
   `;
