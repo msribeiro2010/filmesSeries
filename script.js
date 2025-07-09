@@ -5,7 +5,7 @@ const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 // ===== ESTADO DA APLICAÇÃO =====
 const state = {
-  currentType: 'movie',
+  currentType: 'tv', // Iniciar com séries por padrão
   currentGenre: '',
   currentFilter: 'popular', // popular, upcoming, in_theaters
   genres: [],
@@ -140,23 +140,46 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           }
 
         } else {
-          // Para séries: buscar séries que estrearão em 2025+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=5`;
+          // Para séries: buscar APENAS séries PROMISSORAS que estrearão em 2025+
+          console.log('Buscando séries PROMISSORAS de 2025+...');
+          
+          // Buscar séries futuras com critérios de qualidade
+          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=10&with_original_language=en|pt|es|fr|de|ja|ko`;
 
-          console.log('URL séries futuras:', url);
+          console.log('URL séries promissoras futuras:', url);
           const response = await fetch(url);
           const data = await response.json();
 
+          // Filtrar apenas séries futuras com potencial de sucesso
           results = (data.results || []).filter(item => {
             const airDate = item.first_air_date;
             if (!airDate) return false;
 
             const year = new Date(airDate).getFullYear();
             const isFuture = year >= 2025;
+            // Critérios para séries promissoras: popularidade mínima e alguma expectativa
+            const isPromising = item.popularity >= 20 && (item.vote_count >= 10 || item.vote_average >= 6.0);
 
-            console.log(`Série: "${item.name}" - Data: ${airDate} (${year}) - Futuro: ${isFuture}`);
-            return isFuture;
+            console.log(`Série Futura: "${item.name}" - Data: ${airDate} (${year}) - Pop: ${item.popularity} - Promissora: ${isPromising}`);
+            return isFuture && isPromising;
           });
+          
+          // Buscar também séries com datas futuras da API de trending
+          if (results.length < 10) {
+            console.log('Complementando com séries trending futuras...');
+            const trendingUrl = `${BASE_URL}/trending/tv/week?api_key=${API_KEY}&language=pt-BR`;
+            const trendingResponse = await fetch(trendingUrl);
+            const trendingData = await trendingResponse.json();
+
+            const futureTrending = (trendingData.results || []).filter(series => {
+              const airDate = series.first_air_date;
+              if (!airDate) return false;
+              const year = new Date(airDate).getFullYear();
+              return year >= 2025 && series.popularity >= 30;
+            });
+
+            results = [...results, ...futureTrending];
+          }
         }
 
         // Remover duplicatas e ordenar por data de lançamento
@@ -225,31 +248,53 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
           console.log('URL filmes populares:', url);
         } else {
-          // Para séries: focar apenas nas que estrearam em 2024+
-          console.log('Buscando séries mais populares de 2024+...');
+          // Para séries: focar EXCLUSIVAMENTE nas séries de SUCESSO de 2024+
+          console.log('Buscando APENAS séries de SUCESSO de 2024+...');
 
-          // Buscar séries que estrearam especificamente em 2024+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=2024-01-01`;
+          // Critérios mais rigorosos para séries de sucesso:
+          // - Nota mínima 7.5 (alta qualidade)
+          // - Mínimo 100 votos (popularidade comprovada)
+          // - Popularidade mínima 50
+          // - Apenas de 2024 em diante
+          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=100&vote_average.gte=7.5&first_air_date.gte=2024-01-01&with_original_language=en|pt|es|fr|de|ja|ko`;
 
-          console.log('URL séries populares:', url);
+          console.log('URL séries de sucesso 2024+:', url);
           const response = await fetch(url);
           const data = await response.json();
 
-          // Filtrar rigorosamente apenas séries de 2024+
+          // Filtrar rigorosamente apenas séries de SUCESSO de 2024+
           results = (data.results || []).filter(series => {
             const airDate = series.first_air_date;
             if (!airDate) return false;
 
             const year = new Date(airDate).getFullYear();
             const is2024Plus = year >= 2024;
+            const isSuccess = series.vote_average >= 7.5 && series.vote_count >= 100 && series.popularity >= 50;
 
-            console.log(`Série: "${series.name}" - Data: ${airDate} (${year}) - 2024+: ${is2024Plus} - Popularidade: ${series.popularity}`);
-            return is2024Plus;
+            console.log(`Série: "${series.name}" - Data: ${airDate} (${year}) - Nota: ${series.vote_average} - Votos: ${series.vote_count} - Pop: ${series.popularity} - Sucesso: ${isSuccess}`);
+            return is2024Plus && isSuccess;
           });
 
-          // Se poucos resultados, buscar mais páginas
+          // Buscar também séries trending de 2024+ para complementar
           if (results.length < 15) {
-            console.log('Poucos resultados, buscando página 2...');
+            console.log('Buscando séries trending de 2024+ para complementar...');
+            const trendingUrl = `${BASE_URL}/trending/tv/week?api_key=${API_KEY}&language=pt-BR`;
+            const trendingResponse = await fetch(trendingUrl);
+            const trendingData = await trendingResponse.json();
+
+            const trending2024 = (trendingData.results || []).filter(series => {
+              const airDate = series.first_air_date;
+              if (!airDate) return false;
+              const year = new Date(airDate).getFullYear();
+              return year >= 2024 && series.vote_average >= 7.0 && series.vote_count >= 50;
+            });
+
+            results = [...results, ...trending2024];
+          }
+
+          // Buscar mais páginas se ainda precisar de mais séries de sucesso
+          if (results.length < 20) {
+            console.log('Buscando página 2 de séries de sucesso...');
             const page2Url = url + '&page=2';
             const page2Response = await fetch(page2Url);
             const page2Data = await page2Response.json();
@@ -258,18 +303,23 @@ async function loadContent(type, genreId = '', filter = 'popular') {
               const airDate = series.first_air_date;
               if (!airDate) return false;
               const year = new Date(airDate).getFullYear();
-              return year >= 2024;
+              return year >= 2024 && series.vote_average >= 7.5 && series.vote_count >= 100;
             });
 
             results = [...results, ...page2Results];
           }
 
-          // Remover duplicatas e ordenar por popularidade
+          // Remover duplicatas e ordenar por nota + popularidade (séries de maior sucesso primeiro)
           results = results.filter((series, index, self) =>
             index === self.findIndex(s => s.id === series.id)
-          ).sort((a, b) => b.popularity - a.popularity);
+          ).sort((a, b) => {
+            // Priorizar por nota e depois por popularidade
+            const scoreA = (a.vote_average * 0.7) + (Math.log(a.popularity) * 0.3);
+            const scoreB = (b.vote_average * 0.7) + (Math.log(b.popularity) * 0.3);
+            return scoreB - scoreA;
+          });
 
-          console.log(`Encontradas ${results.length} séries populares de 2024+`);
+          console.log(`Encontradas ${results.length} séries de SUCESSO de 2024+`);
           break;
         }
 
@@ -690,13 +740,13 @@ function updateSectionTitle(type, genreId = '', filter = 'popular') {
   let filterText = '';
   switch (filter) {
     case 'upcoming':
-      filterText = type === 'movie' ? 'Próximos Lançamentos (2025+)' : 'Séries Futuras (2025+)';
+      filterText = type === 'movie' ? 'Próximos Lançamentos (2025+)' : 'Séries Promissoras (2025+)';
       break;
     case 'in_theaters':
       filterText = type === 'movie' ? 'Em Cartaz nos Cinemas' : 'Séries no Ar';
       break;
     default:
-      filterText = type === 'movie' ? 'Filmes Populares (2024+)' : 'Séries Populares (2024+)';
+      filterText = type === 'movie' ? 'Filmes Populares (2024+)' : 'Séries de Sucesso (2024+)';
   }
 
   if (genreId) {
@@ -719,12 +769,21 @@ function setLoading(loading) {
 }
 
 function showNoResults() {
+  const isSeriesMode = state.currentType === 'tv';
+  const title = isSeriesMode ? 'Nenhuma série de sucesso encontrada' : 'Nenhum conteúdo de 2024+ encontrado';
+  const description = isSeriesMode 
+    ? 'Não encontramos séries de sucesso (nota ≥7.5, 100+ votos) de 2024+ para os filtros selecionados.'
+    : 'Não encontramos filmes ou séries de 2024 em diante para os filtros selecionados.';
+  const suggestion = isSeriesMode
+    ? 'Nossos critérios são rigorosos para garantir apenas séries de alta qualidade. Tente alterar os filtros.'
+    : 'Tente alterar os filtros ou aguarde novos lançamentos.';
+    
   elements.contentGrid.innerHTML = `
     <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);">
-      <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-      <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Nenhum conteúdo de 2024+ encontrado</h3>
-      <p>Não encontramos filmes ou séries de 2024 em diante para os filtros selecionados.</p>
-      <p style="margin-top: 0.5rem; font-size: 0.9rem;">Tente alterar os filtros ou aguarde novos lançamentos.</p>
+      <i class="fas fa-star" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; color: #f39c12;"></i>
+      <h3 style="margin-bottom: 1rem; color: var(--text-primary);">${title}</h3>
+      <p>${description}</p>
+      <p style="margin-top: 0.5rem; font-size: 0.9rem;">${suggestion}</p>
     </div>
   `;
 }
