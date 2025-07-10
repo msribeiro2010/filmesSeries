@@ -143,6 +143,7 @@ function initializeEventListeners() {
 }
 
 async function loadInitialData() {
+  updateContentFilterOptions(state.currentType);
   await loadGenres(state.currentType);
   await loadContent(state.currentType, '', state.currentFilter);
 }
@@ -195,7 +196,7 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         if (type === 'movie') {
           // Para filmes: usar discover para ter mais controle sobre as datas
-          const endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=10`;
+          const endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=1`;
 
           console.log('Buscando filmes futuros...');
           const data = await fetchWithFallback(endpoint);
@@ -213,6 +214,7 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
           // Se poucos resultados, buscar também de upcoming oficial
           if (results.length < 10) {
+            console.log('Poucos resultados, buscando endpoint upcoming oficial...');
             const upcomingEndpoint = `/movie/upcoming?api_key=${API_KEY}&language=pt-BR&page=1`;
             const upcomingData = await fetchWithFallback(upcomingEndpoint);
 
@@ -222,6 +224,34 @@ async function loadContent(type, genreId = '', filter = 'popular') {
             });
 
             results = [...results, ...futureUpcoming];
+          }
+
+          // Se ainda poucos resultados, buscar páginas adicionais do discover
+          if (results.length < 15) {
+            console.log('Ainda poucos resultados, buscando página 2 do discover...');
+            const page2Endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=2&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=5`;
+            const page2Data = await fetchWithFallback(page2Endpoint);
+
+            const futurePage2 = (page2Data.results || []).filter(item => {
+              const releaseDate = item.release_date;
+              return releaseDate && isFutureDate(releaseDate);
+            });
+
+            results = [...results, ...futurePage2];
+          }
+
+          // Se ainda poucos resultados, buscar página 3
+          if (results.length < 20) {
+            console.log('Ainda poucos resultados, buscando página 3 do discover...');
+            const page3Endpoint = `/discover/movie?api_key=${API_KEY}&language=pt-BR&page=3&sort_by=release_date.asc&primary_release_date.gte=${currentDate}&vote_count.gte=1`;
+            const page3Data = await fetchWithFallback(page3Endpoint);
+
+            const futurePage3 = (page3Data.results || []).filter(item => {
+              const releaseDate = item.release_date;
+              return releaseDate && isFutureDate(releaseDate);
+            });
+
+            results = [...results, ...futurePage3];
           }
 
         } else {
@@ -802,11 +832,37 @@ function handleTypeChange(type) {
 
   // Atualizar UI
   updateActiveTab(type);
+  updateContentFilterOptions(type);
   elements.genreFilter.value = '';
 
   // Carregar dados
   loadGenres(type);
   loadContent(type, '', state.currentFilter);
+}
+
+function updateContentFilterOptions(type) {
+  if (!elements.contentFilter) return;
+  
+  const currentValue = elements.contentFilter.value;
+  
+  if (type === 'movie') {
+    elements.contentFilter.innerHTML = `
+      <option value="popular">Filmes de Sucesso</option>
+      <option value="upcoming">Lançamentos Futuros</option>
+      <option value="in_theaters">Em Cartaz</option>
+    `;
+  } else {
+    elements.contentFilter.innerHTML = `
+      <option value="popular">Séries de Sucesso</option>
+      <option value="upcoming">Lançamentos</option>
+      <option value="in_theaters">Em Cartaz</option>
+    `;
+  }
+  
+  // Manter o valor selecionado se ainda existir
+  if (elements.contentFilter.querySelector(`option[value="${currentValue}"]`)) {
+    elements.contentFilter.value = currentValue;
+  }
 }
 
 function handleGenreChange(genreId) {
@@ -837,21 +893,21 @@ function updateSectionTitle(type, genreId = '', filter = 'popular') {
   let filterText = '';
   switch (filter) {
     case 'upcoming':
-      filterText = type === 'movie' ? 'Próximos Lançamentos (2025+)' : 'Séries Futuras (2025+)';
+      filterText = type === 'movie' ? 'Lançamentos Futuros' : 'Lançamentos';
       break;
     case 'in_theaters':
-      filterText = type === 'movie' ? 'Em Cartaz nos Cinemas' : 'Séries no Ar';
+      filterText = type === 'movie' ? 'Em Cartaz' : 'Em Cartaz';
       break;
     default:
-      filterText = type === 'movie' ? 'Filmes Populares (2024+)' : 'Séries Populares (2024+)';
+      filterText = type === 'movie' ? 'Filmes de Sucesso' : 'Séries de Sucesso';
   }
 
   if (genreId) {
     const genre = state.genres.find(g => g.id == genreId);
     const genreName = genre ? genre.name : '';
-    title = `${typeText} de ${genreName} - ${filterText}`;
+    title = `${filterText} de ${genreName}`;
   } else {
-    title = `${typeText} ${filterText}`;
+    title = filterText;
   }
 
   elements.sectionTitle.textContent = title;
