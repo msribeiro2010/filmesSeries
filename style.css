@@ -352,6 +352,42 @@ body {
   box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
 }
 
+.card-trailer-btn {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  opacity: 0;
+  transform: scale(0.8);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.movie-card:hover .card-trailer-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.card-trailer-btn:hover {
+  background: var(--accent);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.card-trailer-btn i {
+  font-size: 16px;
+  margin-left: 2px; /* Ajuste visual para centralizar o ícone play */
+}
+
 .card-content {
   padding: var(--spacing-md);
 }

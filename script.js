@@ -225,23 +225,50 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           }
 
         } else {
-          // Para séries: buscar séries que estrearão em 2025+
-          const endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=5`;
+          // Para séries: buscar séries que estrearão no futuro (a partir da data atual)
+          const endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
 
           console.log('Buscando séries futuras...');
           const data = await fetchWithFallback(endpoint);
 
-          // Filtrar apenas séries futuras com potencial de sucesso
+          // Filtrar rigorosamente apenas séries futuras
           results = (data.results || []).filter(item => {
             const airDate = item.first_air_date;
             if (!airDate) return false;
 
-            const year = new Date(airDate).getFullYear();
-            const isFuture = year >= 2025;
+            const isFuture = isFutureDate(airDate);
 
-            console.log(`Série: "${item.name}" - Data: ${airDate} (${year}) - Futuro: ${isFuture}`);
+            console.log(`Série: "${item.name}" - Data: ${airDate} - Futuro: ${isFuture}`);
             return isFuture;
           });
+
+          // Se poucos resultados, buscar também páginas adicionais
+          if (results.length < 10) {
+            console.log('Poucos resultados, buscando página 2...');
+            const page2Endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=2&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
+            const page2Data = await fetchWithFallback(page2Endpoint);
+
+            const futurePage2 = (page2Data.results || []).filter(item => {
+              const airDate = item.first_air_date;
+              return airDate && isFutureDate(airDate);
+            });
+
+            results = [...results, ...futurePage2];
+          }
+
+          // Se ainda poucos resultados, buscar página 3
+          if (results.length < 15) {
+            console.log('Ainda poucos resultados, buscando página 3...');
+            const page3Endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=3&sort_by=first_air_date.asc&first_air_date.gte=${currentDate}&vote_count.gte=5`;
+            const page3Data = await fetchWithFallback(page3Endpoint);
+
+            const futurePage3 = (page3Data.results || []).filter(item => {
+              const airDate = item.first_air_date;
+              return airDate && isFutureDate(airDate);
+            });
+
+            results = [...results, ...futurePage3];
+          }
         }
 
         // Remover duplicatas e ordenar por data de lançamento
@@ -586,7 +613,7 @@ function createCard(item) {
   const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
   const currentYear = new Date().getFullYear();
   const isRecent = year >= currentYear;
-  const isFuture = year >= (currentYear + 1);
+  const isFuture = date ? isFutureDate(date) : false;
 
   // Formatar data completa (mês/ano)
   const formattedDate = formatReleaseDate(date);
@@ -612,6 +639,9 @@ function createCard(item) {
       </div>
       ${isRecent ? '<div class="card-new-badge">NOVO</div>' : ''}
       ${isFuture ? '<div class="card-future-badge">2026+</div>' : ''}
+      <div class="card-trailer-btn" onclick="event.stopPropagation(); openModalWithTrailer(${JSON.stringify(item).replace(/"/g, '&quot;')})" title="Assistir Trailer">
+        <i class="fas fa-play"></i>
+      </div>
     </div>
     <div class="card-content">
       <h3 class="card-title">${title}</h3>
@@ -1039,6 +1069,20 @@ function hideTrailer() {
   
   // Esconder container
   trailerContainer.style.display = 'none';
+}
+
+// Função para abrir modal e mostrar trailer automaticamente
+async function openModalWithTrailer(item) {
+  await openModal(item);
+  
+  // Buscar trailer e mostrar automaticamente
+  const trailerInfo = await getTrailerInfo(item.id, state.currentType);
+  
+  if (trailerInfo.hasTrailer) {
+    setTimeout(() => {
+      showTrailer(trailerInfo.key, item.title || item.name);
+    }, 500); // Pequeno delay para garantir que o modal foi renderizado
+  }
 }
 
 // ===== FUNÇÕES DO TEMA =====

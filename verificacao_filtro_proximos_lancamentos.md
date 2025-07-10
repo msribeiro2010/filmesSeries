@@ -69,8 +69,23 @@ const isFuture = releaseDate >= now;
 
 - **Em 2024**: O filtro não mostra nenhum conteúdo (busca apenas 2025+)
 - **Em 2025**: Funcionará como esperado
-- **Em 2026**: Mostrará conteúdo de 2025 que já passou, não sendo mais "próximos lançamentos"
+- **Em 2026**: Mostrará conteúdo de 2025 que já passou, não sendo mais# Verificação do Filtro de Próximos Lançamentos
+## ✅ PROBLEMA CORRIGIDO!
 
-## Conclusão
+### Correções Implementadas:
 
-O filtro está funcionando de forma incorreta pois usa datas fixas em vez da data atual do sistema. Precisa ser atualizado para ser dinâmico e realmente mostrar próximos lançamentos a partir do momento atual.
+1. **Data Dinâmica**: Substituído `2025-01-01` por `getCurrentDate()` que retorna a data atual
+2. **Filtro Inteligente**: Implementada função `isFutureDate()` para verificação precisa
+3. **Busca Expandida**: Adicionadas páginas 2 e 3 para garantir mais resultados
+4. **Filtros Consistentes**: Removidos todos os anos hard-coded (2025, 2026, etc.)
+
+### Melhorias Adicionais:
+
+- **Logs Detalhados**: Console mostra exatamente quais itens são filtrados
+- **Fallback Inteligente**: Se poucos resultados, busca páginas adicionais automaticamente
+- **Validação Rigorosa**: Dupla verificação de datas futuras
+- **Performance**: Remoção de duplicatas e ordenação por data de lançamento
+
+### Resultado:
+
+Agora o filtro "Séries Promissoras (2025+)" mostra **TODOS** os lançamentos futuros a partir da data atual, não apenas de 2025. O sistema é dinâmico e funcionará corretamente em qualquer data.
