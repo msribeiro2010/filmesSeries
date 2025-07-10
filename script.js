@@ -226,11 +226,10 @@ async function loadContent(type, genreId = '', filter = 'popular') {
 
         } else {
           // Para séries: buscar séries que estrearão em 2025+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=5`;
+          const endpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=first_air_date.asc&first_air_date.gte=2025-01-01&vote_count.gte=5`;
 
-          console.log('URL séries futuras:', url);
-          const response = await fetch(url);
-          const data = await response.json();
+          console.log('Buscando séries futuras...');
+          const data = await fetchWithFallback(endpoint);
 
           // Filtrar apenas séries futuras com potencial de sucesso
           results = (data.results || []).filter(item => {
@@ -318,53 +317,72 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           // Para séries: focar apenas nas que estrearam em 2024+
           console.log('Buscando séries mais populares de 2024+...');
 
-          // Buscar séries que estrearam especificamente em 2024+
-          url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=popularity.desc&vote_count.gte=50&vote_average.gte=6.5&first_air_date.gte=2024-01-01`;
-
-          console.log('URL séries populares:', url);
-          const response = await fetch(url);
-          const data = await response.json();
-
-          // Filtrar rigorosamente apenas séries de 2024+
-          results = (data.results || []).filter(series => {
+          // Buscar séries de sucesso que estrearam especificamente em 2024+
+          console.log('Buscando séries de sucesso de 2024+...');
+          
+          // Primeira busca: séries com critérios rigorosos de sucesso
+          const successEndpoint = `/discover/tv?api_key=${API_KEY}&language=pt-BR&page=1&sort_by=vote_average.desc&vote_count.gte=100&vote_average.gte=7.5&first_air_date.gte=2024-01-01&with_original_language=en|pt|es|fr|de|ja|ko`;
+          const successData = await fetchWithFallback(successEndpoint);
+          
+          // Filtrar séries de sucesso com critérios rigorosos
+          results = (successData.results || []).filter(series => {
             const airDate = series.first_air_date;
             if (!airDate) return false;
 
             const year = new Date(airDate).getFullYear();
             const is2024Plus = year >= 2024;
+            const isSuccess = series.vote_average >= 7.5 && series.vote_count >= 100 && series.popularity >= 50;
 
-            console.log(`Série: "${series.name}" - Data: ${airDate} (${year}) - 2024+: ${is2024Plus} - Popularidade: ${series.popularity}`);
-            return is2024Plus;
+            console.log(`Série de Sucesso: "${series.name}" - Data: ${airDate} (${year}) - Nota: ${series.vote_average} - Votos: ${series.vote_count} - Pop: ${series.popularity} - Sucesso: ${isSuccess}`);
+            return is2024Plus && isSuccess;
           });
 
-          // Buscar também séries trending de 2024+ para complementar
+          // Complementar com séries trending de 2024+ se poucos resultados
           if (results.length < 15) {
-            console.log('Poucos resultados, buscando página 2...');
-            const page2Url = url + '&page=2';
-            const page2Response = await fetch(page2Url);
-            const page2Data = await page2Response.json();
+            console.log('Poucos resultados de sucesso, buscando séries trending de 2024+...');
+            const trendingEndpoint = `/trending/tv/week?api_key=${API_KEY}&language=pt-BR`;
+            const trendingData = await fetchWithFallback(trendingEndpoint);
+
+            const trending2024Plus = (trendingData.results || []).filter(series => {
+              const airDate = series.first_air_date;
+              if (!airDate) return false;
+              const year = new Date(airDate).getFullYear();
+              const is2024Plus = year >= 2024;
+              console.log(`Série Trending: "${series.name}" - Data: ${airDate} (${year}) - 2024+: ${is2024Plus}`);
+              return is2024Plus;
+            });
+
+            results = [...results, ...trending2024Plus];
+          }
+          
+          // Se ainda poucos resultados, buscar segunda página de séries de sucesso
+          if (results.length < 20) {
+            console.log('Ainda poucos resultados, buscando página 2 de séries de sucesso...');
+            const page2Endpoint = successEndpoint + '&page=2';
+            const page2Data = await fetchWithFallback(page2Endpoint);
 
             const page2Results = (page2Data.results || []).filter(series => {
               const airDate = series.first_air_date;
               if (!airDate) return false;
               const year = new Date(airDate).getFullYear();
-              return year >= 2024;
+              const isSuccess = series.vote_average >= 7.5 && series.vote_count >= 100;
+              return year >= 2024 && isSuccess;
             });
 
             results = [...results, ...page2Results];
           }
 
-          // Remover duplicatas e ordenar por nota + popularidade (séries de maior sucesso primeiro)
+          // Remover duplicatas e ordenar por critério de sucesso (nota + popularidade)
           results = results.filter((series, index, self) =>
             index === self.findIndex(s => s.id === series.id)
           ).sort((a, b) => {
-            // Priorizar por nota e depois por popularidade
-            const scoreA = (a.vote_average * 0.7) + (Math.log(a.popularity) * 0.3);
-            const scoreB = (b.vote_average * 0.7) + (Math.log(b.popularity) * 0.3);
+            // Priorizar séries com melhor combinação de nota e popularidade
+            const scoreA = (a.vote_average * 0.7) + (Math.log(a.popularity || 1) * 0.3);
+            const scoreB = (b.vote_average * 0.7) + (Math.log(b.popularity || 1) * 0.3);
             return scoreB - scoreA;
           });
 
-          console.log(`Encontradas ${results.length} séries populares de 2024+`);
+          console.log(`Encontradas ${results.length} séries de sucesso de 2024+`);
           break;
         }
 
@@ -838,7 +856,7 @@ function showError(message) {
 }
 
 // ===== FUNÇÕES DO MODAL =====
-function openModal(item) {
+async function openModal(item) {
   if (!elements.modal || !elements.modalBody) return;
   
   const title = item.title || item.name;
@@ -860,20 +878,31 @@ function openModal(item) {
   
   // Buscar informações de streaming
   const streamingInfo = getStreamingInfo(item.providers);
+  
+  // Buscar trailers
+  const trailerInfo = await getTrailerInfo(item.id, state.currentType);
 
   elements.modalBody.innerHTML = `
     <div style="position: relative; height: 300px; background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url('${backdropPath}'); background-size: cover; background-position: center; display: flex; align-items: end; padding: 2rem;">
-      <div style="color: white;">
+      <div style="color: white; width: 100%;">
         <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">${title}</h2>
-        <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem;">
-          <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">
-            <i class="fas fa-calendar-alt" style="margin-right: 4px;"></i>
-            ${fullDate || year}
-          </span>
-          <span style="display: flex; align-items: center; gap: 0.25rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">
-            <i class="fas fa-star" style="color: #ffd700;"></i>
-            ${rating}
-          </span>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem;">
+            <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">
+              <i class="fas fa-calendar-alt" style="margin-right: 4px;"></i>
+              ${fullDate || year}
+            </span>
+            <span style="display: flex; align-items: center; gap: 0.25rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">
+              <i class="fas fa-star" style="color: #ffd700;"></i>
+              ${rating}
+            </span>
+          </div>
+          ${trailerInfo.hasTrailer ? `
+            <button onclick="showTrailer('${trailerInfo.key}', '${title}')" style="background: #e50914; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#b8070f'" onmouseout="this.style.background='#e50914'">
+              <i class="fas fa-play"></i>
+              Assistir Trailer
+            </button>
+          ` : ''}
         </div>
       </div>
     </div>
@@ -901,6 +930,18 @@ function openModal(item) {
           <strong>Disponível nos Cinemas</strong>
         </div>
       ` : ''}
+      
+      <!-- Container para o trailer -->
+      <div id="trailer-container" style="display: none; margin-top: 2rem;">
+        <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Trailer</h3>
+        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; background: #000; border-radius: var(--radius-md); overflow: hidden;">
+          <iframe id="trailer-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
+        </div>
+        <button onclick="hideTrailer()" style="margin-top: 1rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Fechar Trailer
+        </button>
+      </div>
     </div>
   `;
   
