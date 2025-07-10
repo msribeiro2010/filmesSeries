@@ -184,6 +184,9 @@ async function loadContent(type, genreId = '', filter = 'popular') {
   setLoading(true);
   updateSectionTitle(type, genreId, filter);
 
+  // Definir se deve excluir animações (excluir apenas no carregamento inicial sem gênero específico)
+  const shouldExcludeAnimation = genreId === '' && filter === 'popular';
+
   try {
     let url = '';
     let results = [];
@@ -337,20 +340,41 @@ async function loadContent(type, genreId = '', filter = 'popular') {
           });
 
         } else {
-          // Para séries: buscar séries que estão no ar atualmente
+          // Para séries: buscar séries que estão no ar atualmente de 2024 em diante
           const endpoint = `/tv/on_the_air?api_key=${API_KEY}&language=pt-BR&page=1`;
-          console.log('Buscando séries no ar...');
+          console.log('Buscando séries no ar de 2024+...');
 
           const data = await fetchWithFallback(endpoint);
 
-          // Para séries no ar, mostrar todas (podem ser de qualquer ano mas estão ativas)
-          results = data.results || [];
+          // Filtrar apenas séries de 2024 em diante
+          results = (data.results || []).filter(item => {
+            const airDate = item.first_air_date;
+            if (!airDate) return false;
 
-          // Opcional: filtrar apenas séries que tiveram episódios recentes
-          results = results.filter(item => {
-            console.log(`Série no ar: "${item.name}" - Primeira exibição: ${item.first_air_date}`);
-            return true; // Manter todas as séries no ar
+            const year = new Date(airDate).getFullYear();
+            const is2024Plus = year >= 2024;
+
+            console.log(`Série no ar: "${item.name}" - Primeira exibição: ${airDate} (${year}) - 2024+: ${is2024Plus}`);
+            return is2024Plus;
           });
+
+          // Se poucos resultados, buscar páginas adicionais
+          if (results.length < 10) {
+            console.log('Poucos resultados, buscando página 2...');
+            const page2Data = await fetchWithFallback(endpoint + '&page=2');
+            const page2Results = (page2Data.results || []).filter(item => {
+              const airDate = item.first_air_date;
+              if (!airDate) return false;
+              const year = new Date(airDate).getFullYear();
+              return year >= 2024;
+            });
+            results = [...results, ...page2Results];
+          }
+
+          // Remover duplicatas
+          results = results.filter((series, index, self) =>
+            index === self.findIndex(s => s.id === series.id)
+          );
         }
 
         console.log(`Encontrados ${results.length} títulos em cartaz/no ar`);
@@ -548,6 +572,20 @@ async function loadContent(type, genreId = '', filter = 'popular') {
       );
 
       console.log(`Após busca específica: ${results.length} itens encontrados`);
+    }
+
+    // Filtrar animações se necessário (apenas no carregamento inicial)
+    if (shouldExcludeAnimation) {
+      const animationGenreId = 16; // ID do gênero Animação
+      const beforeFilter = results.length;
+      results = results.filter(item => {
+        const hasAnimation = item.genre_ids && item.genre_ids.includes(animationGenreId);
+        if (hasAnimation) {
+          console.log(`Excluindo animação: "${item.title || item.name}"`);
+        }
+        return !hasAnimation;
+      });
+      console.log(`Filtro de animação: ${beforeFilter} -> ${results.length} itens`);
     }
 
     // Buscar informações de streaming para cada item
@@ -855,7 +893,7 @@ function updateContentFilterOptions(type) {
     elements.contentFilter.innerHTML = `
       <option value="popular">Séries de Sucesso</option>
       <option value="upcoming">Lançamentos</option>
-      <option value="in_theaters">Em Cartaz</option>
+      <option value="in_theaters">No Ar</option>
     `;
   }
   
@@ -896,7 +934,7 @@ function updateSectionTitle(type, genreId = '', filter = 'popular') {
       filterText = type === 'movie' ? 'Lançamentos Futuros' : 'Lançamentos';
       break;
     case 'in_theaters':
-      filterText = type === 'movie' ? 'Em Cartaz' : 'Em Cartaz';
+      filterText = type === 'movie' ? 'Em Cartaz' : 'No Ar';
       break;
     default:
       filterText = type === 'movie' ? 'Filmes de Sucesso' : 'Séries de Sucesso';
