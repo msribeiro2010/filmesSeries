@@ -952,8 +952,93 @@ async function openModal(item) {
 function closeModal() {
   if (!elements.modal) return;
   
+  // Parar trailer se estiver tocando
+  hideTrailer();
+  
   elements.modal.classList.remove('show');
   document.body.style.overflow = '';
+}
+
+// ===== FUNÇÕES DE TRAILER =====
+async function getTrailerInfo(itemId, type) {
+  try {
+    const endpoint = `/${type}/${itemId}/videos?api_key=${API_KEY}&language=pt-BR`;
+    const data = await fetchWithFallback(endpoint);
+    
+    if (!data.results || data.results.length === 0) {
+      // Tentar buscar em inglês se não houver em português
+      const englishEndpoint = `/${type}/${itemId}/videos?api_key=${API_KEY}&language=en-US`;
+      const englishData = await fetchWithFallback(englishEndpoint);
+      
+      if (!englishData.results || englishData.results.length === 0) {
+        return { hasTrailer: false, key: null };
+      }
+      
+      // Procurar por trailer oficial
+      const trailer = englishData.results.find(video => 
+        video.type === 'Trailer' && 
+        video.site === 'YouTube' && 
+        (video.name.toLowerCase().includes('official') || 
+         video.name.toLowerCase().includes('trailer'))
+      ) || englishData.results.find(video => 
+        video.type === 'Trailer' && video.site === 'YouTube'
+      ) || englishData.results[0];
+      
+      return {
+        hasTrailer: !!trailer,
+        key: trailer?.key || null
+      };
+    }
+    
+    // Procurar por trailer oficial em português
+    const trailer = data.results.find(video => 
+      video.type === 'Trailer' && 
+      video.site === 'YouTube' && 
+      (video.name.toLowerCase().includes('oficial') || 
+       video.name.toLowerCase().includes('trailer'))
+    ) || data.results.find(video => 
+      video.type === 'Trailer' && video.site === 'YouTube'
+    ) || data.results[0];
+    
+    return {
+      hasTrailer: !!trailer,
+      key: trailer?.key || null
+    };
+  } catch (error) {
+    console.error('Erro ao buscar trailer:', error);
+    return { hasTrailer: false, key: null };
+  }
+}
+
+function showTrailer(trailerKey, title) {
+  const trailerContainer = document.getElementById('trailer-container');
+  const trailerIframe = document.getElementById('trailer-iframe');
+  
+  if (!trailerContainer || !trailerIframe || !trailerKey) return;
+  
+  // Configurar iframe do YouTube
+  trailerIframe.src = `https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1`;
+  
+  // Mostrar container do trailer
+  trailerContainer.style.display = 'block';
+  
+  // Scroll suave para o trailer
+  trailerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  
+  console.log(`Reproduzindo trailer de "${title}" (${trailerKey})`);
+}
+
+function hideTrailer() {
+  const trailerContainer = document.getElementById('trailer-container');
+  const trailerIframe = document.getElementById('trailer-iframe');
+  
+  if (!trailerContainer || !trailerIframe) return;
+  
+  // Parar vídeo removendo src
+  trailerIframe.src = '';
+  
+  // Esconder container
+  trailerContainer.style.display = 'none';
 }
 
 // ===== FUNÇÕES DO TEMA =====
