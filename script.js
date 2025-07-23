@@ -711,7 +711,7 @@ function createCard(item) {
         <i class="fas fa-play"></i>
       </div>
       <div class="card-share-btn" onclick="event.stopPropagation(); openShareModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" title="Compartilhar">
-        <i class="fas fa-share-alt"></i>
+        <i class="fas fa-paper-plane"></i>
       </div>
     </div>
     <div class="card-content">

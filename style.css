@@ -709,6 +709,25 @@ body {
 
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 767px) {
+  /* Header mobile */
+  .header .container {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .logo {
+    font-size: 1.3rem;
+  }
+
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Filtros mobile */
+  .filters {
+    padding: var(--spacing-sm) 0;
+  }
+
   .filters .container {
     flex-direction: column;
     align-items: stretch;
@@ -719,6 +738,11 @@ body {
     justify-content: center;
   }
 
+  .filter-tab {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
+  }
+
   .filter-options {
     flex-direction: column;
     gap: var(--spacing-xs);
@@ -726,29 +750,270 @@ body {
 
   .filter-select {
     min-width: auto;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
   }
 
   .genre-select {
     min-width: auto;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
+  }
+
+  /* Main content mobile */
+  .main {
+    padding: var(--spacing-md) 0;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
   }
 
   .section-title {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    line-height: 1.2;
   }
 
+  .loading-indicator {
+    font-size: 0.8rem;
+  }
+
+  /* Grid mobile */
   .content-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: var(--spacing-sm);
   }
 
+  /* Cards mobile */
+  .movie-card {
+    border-radius: var(--radius-sm);
+  }
+
+  .card-content {
+    padding: var(--spacing-sm);
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    -webkit-line-clamp: 2;
+  }
+
+  .card-meta {
+    font-size: 0.8rem;
+    gap: var(--spacing-xs);
+  }
+
+  .card-date {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+  }
+
+  .card-genre {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+  }
+
+  .card-rating {
+    font-size: 0.75rem;
+    padding: 3px 6px;
+  }
+
+  /* Botões de ação mobile - sempre visíveis */
+  .card-trailer-btn,
+  .card-share-btn {
+    width: 36px;
+    height: 36px;
+    bottom: var(--spacing-xs);
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-trailer-btn {
+    right: var(--spacing-xs);
+  }
+
+  .card-share-btn {
+    left: var(--spacing-xs);
+  }
+
+  .card-trailer-btn i,
+  .card-share-btn i {
+    font-size: 14px;
+  }
+
+  /* Remover hover effects em mobile */
+  .movie-card:hover {
+    transform: none;
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+
+  .movie-card:hover .card-poster {
+    transform: none;
+  }
+
+  /* Badges mobile */
+  .card-new-badge,
+  .card-future-badge {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+    top: var(--spacing-xs);
+  }
+
+  .card-new-badge {
+    left: var(--spacing-xs);
+  }
+
+  .card-future-badge {
+    top: calc(var(--spacing-xs) + 24px);
+    left: var(--spacing-xs);
+  }
+
+  /* Streaming info mobile */
   .card-streaming {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+    margin-top: 4px;
   }
 
   .platform-logo {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .cinema-badge {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+  }
+
+  /* Modal principal mobile */
+  .modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+    margin: var(--spacing-sm);
+    border-radius: var(--radius-md);
+  }
+
+  .modal-close {
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Modal de compartilhamento mobile */
+  .share-modal-content {
+    max-width: 95vw;
+    width: calc(100vw - 2rem);
+    padding: var(--spacing-md);
+    margin: var(--spacing-sm);
+    border-radius: var(--radius-md);
+  }
+
+  .share-modal-header {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .share-modal-title {
+    font-size: 1.1rem;
+  }
+
+  .share-modal-close {
+    padding: var(--spacing-xs);
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Opções de compartilhamento mobile */
+  .share-options {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  .share-option {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+    text-align: left;
+  }
+
+  .share-option i {
+    font-size: 1.3rem;
+    min-width: 24px;
+  }
+
+  .share-option span {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Footer mobile */
+  .footer {
+    padding: var(--spacing-md) 0;
+    font-size: 0.9rem;
+  }
+}
+
+/* Responsividade para telas muito pequenas */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 var(--spacing-xs);
+  }
+
+  .content-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--spacing-xs);
+  }
+
+  .card-content {
+    padding: var(--spacing-xs);
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+  }
+
+  .share-modal-content {
+    padding: var(--spacing-sm);
+  }
+
+  .share-option {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+}
+
+/* Melhorias para landscape em mobile */
+@media (max-width: 767px) and (orientation: landscape) {
+  .main {
+    padding: var(--spacing-sm) 0;
+  }
+
+  .section-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .content-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .share-options {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .share-option {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
   }
 }
