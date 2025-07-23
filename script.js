@@ -710,6 +710,9 @@ function createCard(item) {
       <div class="card-trailer-btn" onclick="event.stopPropagation(); openModalWithTrailer(${JSON.stringify(item).replace(/"/g, '&quot;')})" title="Assistir Trailer">
         <i class="fas fa-play"></i>
       </div>
+      <div class="card-share-btn" onclick="event.stopPropagation(); openShareModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" title="Compartilhar">
+        <i class="fas fa-share-alt"></i>
+      </div>
     </div>
     <div class="card-content">
       <h3 class="card-title">${title}</h3>
@@ -1203,3 +1206,94 @@ function updateThemeIcon(theme) {
 }
 
 
+
+// ===== FUNÇÕES DE COMPARTILHAMENTO =====
+let currentShareItem = null;
+
+// Função para abrir o modal de compartilhamento
+function openShareModal(item) {
+  currentShareItem = item;
+  const shareModal = document.getElementById('share-modal');
+  if (shareModal) {
+    shareModal.classList.add('show');
+    setupShareLinks(item);
+  }
+}
+
+// Função para fechar o modal de compartilhamento
+function closeShareModal() {
+  const shareModal = document.getElementById('share-modal');
+  if (shareModal) {
+    shareModal.classList.remove('show');
+  }
+  currentShareItem = null;
+}
+
+// Função para configurar os links de compartilhamento
+function setupShareLinks(item) {
+  const title = item.title || item.name;
+  const type = item.title ? 'filme' : 'série';
+  const year = item.release_date || item.first_air_date ? 
+    new Date(item.release_date || item.first_air_date).getFullYear() : '';
+  const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
+  
+  // Criar mensagem de compartilhamento
+  const message = `🎬 Recomendo ${type}: "${title}" ${year ? `(${year})` : ''}
+⭐ Avaliação: ${rating}/10
+
+Descobri no app Filmes & Séries! 🍿`;
+
+  const encodedMessage = encodeURIComponent(message);
+  
+  // Configurar links
+  const whatsappLink = document.getElementById('share-whatsapp');
+  const emailLink = document.getElementById('share-email');
+  const smsLink = document.getElementById('share-sms');
+  
+  if (whatsappLink) {
+    whatsappLink.href = `https://wa.me/?text=${encodedMessage}`;
+    whatsappLink.target = '_blank';
+  }
+  
+  if (emailLink) {
+    const subject = encodeURIComponent(`Recomendação: ${title}`);
+    emailLink.href = `mailto:?subject=${subject}&body=${encodedMessage}`;
+  }
+  
+  if (smsLink) {
+    smsLink.href = `sms:?body=${encodedMessage}`;
+  }
+}
+
+// Event listeners para o modal de compartilhamento
+document.addEventListener('DOMContentLoaded', () => {
+  // Fechar modal de compartilhamento
+  const shareModalClose = document.querySelector('.share-modal-close');
+  const shareModalOverlay = document.querySelector('.share-modal-overlay');
+  
+  if (shareModalClose) {
+    shareModalClose.addEventListener('click', closeShareModal);
+  }
+  
+  if (shareModalOverlay) {
+    shareModalOverlay.addEventListener('click', closeShareModal);
+  }
+  
+  // Fechar modal com ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeShareModal();
+    }
+  });
+  
+  // Event listeners para os botões de compartilhamento
+  const shareOptions = document.querySelectorAll('.share-option');
+  shareOptions.forEach(option => {
+    option.addEventListener('click', (e) => {
+      // Pequeno delay para permitir que o link seja processado
+      setTimeout(() => {
+        closeShareModal();
+      }, 100);
+    });
+  });
+});
